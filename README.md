@@ -187,20 +187,7 @@ El informe se genera con nombre `NetChecker_AAAAMMDD_HHMM.html`. Incluye:
 
 ## Iconos
 
-Los iconos de la barra de herramientas han sido obtenidos de:
-
 **[Icons8 — Fluency style](https://icons8.com/icons/fluency)**
-
-| Archivo | Uso en la aplicación |
-|---|---|
-| icon_run.ico | Comprobar conectividad |
-| icon_stop.ico | Detener comprobación |
-| icon_html.ico | Guardar informe HTML |
-| icon_save.ico | Guardar configuración |
-| icon_reload.ico | Recargar configuración |
-| icon_cfgedit.ico | Editor de configuración |
-| icon_info.ico | Acerca de / Información |
-| icon_exit.ico | Salir |
 
 ---
 
