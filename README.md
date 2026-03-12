@@ -7,7 +7,6 @@ contra Domain Controllers, Print Servers, SCCM Full y SCCM Distribution Points
 de forma asíncrona, con informe HTML exportable.
 
 Desarrollada con la asistencia de **Claude Sonnet** (Anthropic).  
-Distribución libre — free to use, copy and modify.
 
 ---
 
