@@ -1,0 +1,167 @@
+// Microsoft Visual C++ generated resource script.
+// Encoding: Windows-1252  (#pragma code_page 1252)
+#pragma code_page(1252)
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+#include "winres.h"
+#undef APSTUDIO_READONLY_SYMBOLS
+
+LANGUAGE LANG_SPANISH, SUBLANG_SPANISH
+
+// Application icon (multi-size: 48, 32, 24, 16)
+IDR_MAINFRAME MENU
+BEGIN
+    POPUP " "
+    BEGIN
+        MENUITEM " ", 0xFFFF, GRAYED
+    END
+END
+
+IDR_MAINFRAME   ICON    "..\\res\\icon_app.ico"
+IDI_ICON_GITHUB ICON    "..\\res\\icon_github.ico"
+
+// Toolbar icons as ICON resources (32x32 loaded at runtime via LoadImage)
+IDI_ICON_RUN     ICON   "..\\res\\icon_run.ico"
+IDI_ICON_STOP    ICON   "..\\res\\icon_stop.ico"
+IDI_ICON_HTML    ICON   "..\\res\\icon_html.ico"
+IDI_ICON_SAVE    ICON   "..\\res\\icon_save.ico"
+IDI_ICON_RELOAD  ICON   "..\\res\\icon_reload.ico"
+IDI_ICON_CFGEDIT ICON   "..\\res\\icon_cfgedit.ico"
+IDI_ICON_INFO    ICON   "..\\res\\icon_info.ico"
+IDI_ICON_EXIT    ICON   "..\\res\\icon_exit.ico"
+
+// cp1252: 0xE1=a 0xE9=e 0xED=i 0xF3=o 0xFA=u 0xF1=n~ 0xBF=?inv
+
+// ----------------------------------------------------------------------------
+// Version
+// ----------------------------------------------------------------------------
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION    1,0,0,0
+ PRODUCTVERSION 1,0,0,0
+ FILEFLAGSMASK  0x3fL
+#ifdef _DEBUG
+ FILEFLAGS      VS_FF_DEBUG
+#else
+ FILEFLAGS      0x0L
+#endif
+ FILEOS         VOS_NT_WINDOWS32
+ FILETYPE       VFT_APP
+ FILESUBTYPE    VFT_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "0c0a04b0"
+        BEGIN
+            VALUE "CompanyName",      "NetChecker"
+            VALUE "FileDescription",  "NetChecker - Comprobador de conectividad TCP/UDP"
+            VALUE "FileVersion",      "1.0.0.0"
+            VALUE "InternalName",     "NetChecker"
+            VALUE "LegalCopyright",   "2025"
+            VALUE "OriginalFilename", "NetChecker.exe"
+            VALUE "ProductName",      "NetChecker"
+            VALUE "ProductVersion",   "1.0.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0c0a, 1200
+    END
+END
+
+// ----------------------------------------------------------------------------
+// Menu principal  (Unicode symbols patched at runtime via ModifyMenu)
+// ----------------------------------------------------------------------------
+
+
+// ----------------------------------------------------------------------------
+// Context menu for ListView right-click
+// ----------------------------------------------------------------------------
+IDR_CONTEXT_LIST MENU
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "&Habilitar todos",      ID_CTX_ENABLE_ALL
+        MENUITEM "&Deshabilitar todos",   ID_CTX_DISABLE_ALL
+        MENUITEM SEPARATOR
+        MENUITEM "Habilitar solo &TCP",   ID_CTX_ENABLE_TCP
+        MENUITEM "Deshabilitar solo TC&P",ID_CTX_DISABLE_TCP
+        MENUITEM "Habilitar solo &UDP",   ID_CTX_ENABLE_UDP
+        MENUITEM "Deshabilitar solo UD&P",ID_CTX_DISABLE_UDP
+    END
+END
+
+// ----------------------------------------------------------------------------
+// String table
+// ----------------------------------------------------------------------------
+STRINGTABLE
+BEGIN
+    IDR_MAINFRAME       "NetChecker"
+    IDS_APP_TITLE       "NetChecker - Comprobador de conectividad"
+    IDS_READY           "Listo"
+    IDS_CHECKING        "Comprobando..."
+    IDS_DONE            "Completado"
+    IDS_UNSAVED_CHANGES "Hay cambios sin guardar"
+END
+
+// ----------------------------------------------------------------------------
+// IDD_ABOUT
+// ----------------------------------------------------------------------------
+IDD_ABOUT DIALOGEX 0, 0, 270, 130
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Acerca de NetChecker"
+FONT 9, "Segoe UI", 400, 0, 0x1
+BEGIN
+    // Fila 1: icono app + nombre + subtitulo
+    ICON            IDR_MAINFRAME, IDC_STATIC, 8, 8, 32, 32
+    LTEXT           "NetChecker  (x64)", IDC_STATIC, 48, 10, 210, 12
+    LTEXT           "Comprobador de conectividad TCP/UDP", IDC_STATIC, 48, 24, 210, 10
+
+    CONTROL         "", IDC_STATIC, "Static", SS_ETCHEDHORZ, 6, 44, 258, 1
+
+    // Fila 2: icono GitHub + enlace URL
+    ICON            IDI_ICON_GITHUB, IDC_STATIC, 8, 50, 16, 16
+    CONTROL         "", IDC_ABOUT_LINK_GITHUB, "SysLink", WS_CHILD | WS_VISIBLE | WS_TABSTOP, 30, 52, 232, 12
+
+    CONTROL         "", IDC_STATIC, "Static", SS_ETCHEDHORZ, 6, 70, 258, 1
+
+    // Licencia
+    LTEXT           "General Public License v3.0", IDC_STATIC, 8, 76, 254, 10
+
+    // Iconos
+    LTEXT           "Iconos:", IDC_STATIC, 8, 90, 28, 10
+    CONTROL         "", IDC_ABOUT_LINK_ICONS8, "SysLink", WS_CHILD | WS_VISIBLE | WS_TABSTOP, 38, 90, 224, 12
+
+    DEFPUSHBUTTON   "Aceptar", IDOK, 202, 110, 60, 14
+END
+
+/////////////////////////////////////////////////////////////////////////////
+// IDD_CONFIG_EDITOR
+
+IDD_CONFIG_EDITOR DIALOGEX 0, 0, 490, 338
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Configuración de servidores"
+FONT 9, "Segoe UI", 400, 0, 0x1
+BEGIN
+    LTEXT           "Nombre:",IDC_STATIC,7,12,33,8
+    EDITTEXT        IDC_CFG_EDIT_NAME,42,10,110,12,ES_AUTOHSCROLL|WS_TABSTOP
+    LTEXT           "IP destino:",IDC_STATIC,157,12,43,8
+    CONTROL         "",IDC_CFG_EDIT_IP,"SysIPAddress32",WS_CHILD|WS_VISIBLE|WS_BORDER|WS_TABSTOP,202,10,85,12
+    LTEXT           "Tipo:",IDC_STATIC,292,12,22,8
+    COMBOBOX        IDC_CFG_COMBO_TYPE,316,10,100,60,CBS_DROPDOWNLIST|WS_VSCROLL|WS_TABSTOP
+    PUSHBUTTON      "Agregar",IDC_CFG_BTN_ADD_SRV,422,9,55,14
+    CONTROL         "",IDC_CFG_TAB,"SysTabControl32",TCS_TABS|WS_CHILD|WS_VISIBLE|WS_TABSTOP|WS_CLIPSIBLINGS,7,28,476,230
+    CONTROL         "",IDC_CFG_LIST,"SysListView32",LVS_REPORT|LVS_SHOWSELALWAYS|LVS_SINGLESEL|WS_CHILD|WS_VISIBLE|WS_BORDER|WS_TABSTOP,14,49,462,204
+    LTEXT           "Puerto:",IDC_STATIC,7,266,30,8
+    EDITTEXT        IDC_CFG_EDIT_PORT,39,264,35,12,ES_NUMBER|WS_TABSTOP
+    LTEXT           "Protocolo:",IDC_STATIC,79,266,38,8
+    COMBOBOX        IDC_CFG_COMBO_PROTO,120,264,45,40,CBS_DROPDOWNLIST|WS_TABSTOP
+    LTEXT           "Descripción:",IDC_STATIC,170,266,46,8
+    EDITTEXT        IDC_CFG_EDIT_DESC,218,264,165,12,ES_AUTOHSCROLL|WS_TABSTOP
+    PUSHBUTTON      "Agregar puerto",IDC_CFG_BTN_ADD_PORT,7,281,65,14
+    PUSHBUTTON      "Actualizar",IDC_CFG_BTN_UPD_PORT,76,281,55,14
+    PUSHBUTTON      "Eliminar puerto",IDC_CFG_BTN_DEL_PORT,135,281,65,14
+    PUSHBUTTON      "Eliminar servidor",IDC_CFG_BTN_REM_SRV,7,316,80,14
+    DEFPUSHBUTTON   "Aceptar",IDOK,365,316,60,14
+    PUSHBUTTON      "Cancelar",IDCANCEL,430,316,55,14
+END

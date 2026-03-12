@@ -1,0 +1,103 @@
+#pragma once
+#include "AppTypes.h"
+#include "ResultListCtrl.h"
+#include "NetworkChecker.h"
+#include "ConfigManager.h"
+#include "HtmlExporter.h"
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Toolbar image indices
+// ──────────────────────────────────────────────────────────────────────────────
+enum TbImg
+{
+    IMG_RUN = 0,
+    IMG_STOP,
+    IMG_HTML,
+    IMG_SAVE,       // icon_save.ico  – Guardar config
+    IMG_RELOAD,
+    IMG_CFGEDIT,    // icon_cfgedit.ico – Editor de configuración
+    IMG_INFO,       // icon_info.ico  – Acerca de / Info
+    IMG_EXIT,
+    IMG_COUNT
+};
+
+class CMainFrame : public CFrameWnd
+{
+    DECLARE_DYNAMIC(CMainFrame)
+
+public:
+    CMainFrame();
+    ~CMainFrame() override;
+
+    BOOL PreCreateWindow(CREATESTRUCT& cs) override;
+    BOOL OnCmdMsg(UINT nID, int nCode, void* pExtra,
+                  AFX_CMDHANDLERINFO* pHandlerInfo) override;
+
+protected:
+    int  OnCreate(LPCREATESTRUCT lpCreateStruct);
+    void OnClose();
+    void OnDestroy();
+    afx_msg void OnSize(UINT nType, int cx, int cy);
+
+    // ── Toolbar button handlers ──────────────────────────────────────────────
+    void OnRunStop();
+    void OnStop();
+    void OnSaveHtml();
+    void OnSaveCfg();
+    void OnReloadCfg();
+    void OnCfgWiz();
+    void OnInfo();
+    void OnAutofit();
+    void OnFileExit();
+
+    // ── Update-UI handlers ───────────────────────────────────────────────────
+    void OnUpdateRunStop   (CCmdUI* pCmdUI);
+    void OnUpdateSaveHtml  (CCmdUI* pCmdUI);
+    void OnUpdateSaveCfg   (CCmdUI* pCmdUI);
+    void OnUpdateReloadCfg (CCmdUI* pCmdUI);
+
+    // ── Custom window messages ───────────────────────────────────────────────
+    afx_msg LRESULT OnNcResult  (WPARAM wParam, LPARAM lParam);
+    afx_msg LRESULT OnNcComplete(WPARAM wParam, LPARAM lParam);
+
+    DECLARE_MESSAGE_MAP()
+
+private:
+    // ── Controls ─────────────────────────────────────────────────────────────
+    CToolBar        m_toolbar;
+    CStatusBar      m_statusBar;
+    CProgressCtrl   m_progress;
+    CResultListCtrl m_listCtrl;
+    CImageList      m_ilNormal;
+    CImageList      m_ilDisabled;
+
+    // ── State ─────────────────────────────────────────────────────────────────
+    AppConfig                      m_cfg;
+    std::vector<DestinationResult> m_results;
+    NetworkChecker                 m_checker;
+    ConfigManager                  m_cfgMgr;
+    std::wstring                   m_sourceIP;  // detected at runtime, not persisted
+    bool                           m_cfgDirty   { false };
+    bool                           m_cfgExists  { false };  // config file loaded at least once
+    bool                           m_hasResults { false };
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    void BuildToolbar();
+    void BuildImageLists();
+
+    void DoLoadConfig(bool showSetupIfMissing = true);
+    void DoReloadConfig(bool force);
+    bool DoSaveCfg();
+    void DoRunCheck();
+    void DoStopCheck();
+    void RebuildResults();
+    void SetProgress(int cur, int total);
+    void SetStatus(const wchar_t* text);
+    void SetSourceIPPane(const std::wstring& ip);
+    void SyncToolbarRunStop(bool running);
+
+    void ApplyBatchToggle(int destIdx, Protocol const* proto, bool enable);
+
+    int  TotalPortCount() const;
+    int  CompletedPortCount() const;
+};
