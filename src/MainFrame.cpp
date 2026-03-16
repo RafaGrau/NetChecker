@@ -11,6 +11,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
     ON_WM_CLOSE()
     ON_WM_DESTROY()
     ON_WM_SIZE()
+    ON_NOTIFY(TCN_SELCHANGE, AFX_IDW_PANE_FIRST + 1, &CMainFrame::OnTabSelChange)
 
     // Toolbar button commands
     ON_COMMAND(IDC_BTN_RUN_STOP,    &CMainFrame::OnRunStop)
@@ -18,6 +19,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
     ON_COMMAND(IDC_BTN_SAVE_CFG,    &CMainFrame::OnSaveCfg)
     ON_COMMAND(IDC_BTN_RELOAD_CFG,  &CMainFrame::OnReloadCfg)
     ON_COMMAND(IDC_BTN_AUTOFIT,     &CMainFrame::OnAutofit)
+    ON_COMMAND(IDC_BTN_VIEW_TOGGLE, &CMainFrame::OnViewToggle)
     ON_COMMAND(IDC_BTN_CFG_WIZ,     &CMainFrame::OnCfgWiz)
     ON_COMMAND(IDC_BTN_INFO,        &CMainFrame::OnInfo)
     ON_COMMAND(IDC_BTN_EXIT,        &CMainFrame::OnFileExit)
@@ -78,6 +80,11 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpcs)
         rcClient, this, AFX_IDW_PANE_FIRST);
     m_listCtrl.Initialise();
 
+    // ── Tab control (hidden by default – list mode) ───────────────────────────
+    m_tabCtrl.Create(WS_CHILD | TCS_TABS | TCS_FOCUSNEVER,
+                     rcClient, this, AFX_IDW_PANE_FIRST + 1);
+    m_tabCtrl.ShowWindow(SW_HIDE);
+
     // Checkbox toggle callback
     m_listCtrl.SetCheckToggleCb([this](int di, int pi, bool enabled)
     {
@@ -89,6 +96,7 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpcs)
                 pi < static_cast<int>(m_results[di].portResults.size()))
                 m_results[di].portResults[pi].enabled = enabled;
             m_cfgDirty = true;
+            SyncPortEnabled(di, pi);
         }
     });
 
@@ -138,9 +146,11 @@ void CMainFrame::BuildToolbar()
         {IMG_SAVE,    IDC_BTN_SAVE_CFG,  TBSTATE_ENABLED, TBSTYLE_BUTTON, {}, 0, (INT_PTR)L"Guardar config"},
         {IMG_RELOAD,  IDC_BTN_RELOAD_CFG,TBSTATE_ENABLED, TBSTYLE_BUTTON, {}, 0, (INT_PTR)L"Recargar config"},
         {0,           0,                 TBSTATE_ENABLED, TBSTYLE_SEP,    {}, 0, 0},
-        {IMG_CFGEDIT, IDC_BTN_CFG_WIZ,  TBSTATE_ENABLED, TBSTYLE_BUTTON, {}, 0, (INT_PTR)L"Editor de configuraci\xf3n"},
-        {0,           0,                 TBSTATE_ENABLED, TBSTYLE_SEP,    {}, 0, 0},
-        {IMG_EXIT,    IDC_BTN_EXIT,      TBSTATE_ENABLED, TBSTYLE_BUTTON, {}, 0, (INT_PTR)L"Salir"},
+        {IMG_CFGEDIT, IDC_BTN_CFG_WIZ,    TBSTATE_ENABLED, TBSTYLE_BUTTON, {}, 0, (INT_PTR)L"Editor de configuraci\xf3n"},
+        {0,           0,                   TBSTATE_ENABLED, TBSTYLE_SEP,    {}, 0, 0},
+        {IMG_VIEW_TABS,IDC_BTN_VIEW_TOGGLE,TBSTATE_ENABLED, TBSTYLE_BUTTON, {}, 0, (INT_PTR)L"Vista por pesta\xf1""as"},
+        {0,           0,                   TBSTATE_ENABLED, TBSTYLE_SEP,    {}, 0, 0},
+        {IMG_EXIT,    IDC_BTN_EXIT,        TBSTATE_ENABLED, TBSTYLE_BUTTON, {}, 0, (INT_PTR)L"Salir"},
         // stretch separator – width recalculated in OnSize to push INFO to the right edge
         {0,           IDC_BTN_INFO_SEP,  TBSTATE_ENABLED, TBSTYLE_SEP,    {}, 0, 0},
         {IMG_INFO,    IDC_BTN_INFO,      TBSTATE_ENABLED, TBSTYLE_BUTTON, {}, 0, (INT_PTR)L"Informaci\xf3n"},
@@ -273,6 +283,8 @@ void CMainFrame::BuildImageLists()
         IDI_ICON_SAVE,      // IMG_SAVE
         IDI_ICON_RELOAD,    // IMG_RELOAD
         IDI_ICON_CFGEDIT,   // IMG_CFGEDIT
+        IDI_ICON_VIEWTABS,  // IMG_VIEW_TABS
+        IDI_ICON_VIEWLIST,  // IMG_VIEW_LIST
         IDI_ICON_INFO,      // IMG_INFO
         IDI_ICON_EXIT,      // IMG_EXIT
     };
@@ -326,7 +338,7 @@ void CMainFrame::DoLoadConfig(bool showSetupIfMissing)
         m_cfgExists = true;
         m_cfgDirty  = false;
         RebuildResults();
-        m_listCtrl.PopulateResults(m_results, m_sourceIP);
+        PopulateCurrentView();
         SetSourceIPPane(m_sourceIP);
         SetStatus(L"Configuración cargada.");
     }
@@ -343,7 +355,7 @@ void CMainFrame::DoLoadConfig(bool showSetupIfMissing)
             m_cfgExists = true;
             m_cfgDirty  = false;
             RebuildResults();
-            m_listCtrl.PopulateResults(m_results, m_sourceIP);
+            PopulateCurrentView();
             SetSourceIPPane(m_sourceIP);
         }
     }
@@ -364,7 +376,7 @@ void CMainFrame::DoReloadConfig(bool force)
         m_cfgExists = true;
         m_cfgDirty  = false;
         RebuildResults();
-        m_listCtrl.PopulateResults(m_results, m_sourceIP);
+        PopulateCurrentView();
         SetSourceIPPane(m_sourceIP);
         SetStatus(L"Configuración recargada.");
     } else {
@@ -412,7 +424,7 @@ void CMainFrame::DoRunCheck()
         for (auto& pr : dr.portResults)
             pr.status = ConnectStatus::PENDING;
 
-    m_listCtrl.PopulateResults(m_results, m_sourceIP);
+    PopulateCurrentView();
     SetSourceIPPane(m_sourceIP);
     SetProgress(0, TotalPortCount());
     SetStatus(L"Comprobando conectividad…");
@@ -456,13 +468,19 @@ LRESULT CMainFrame::OnNcResult(WPARAM wParam, LPARAM lParam)
         const auto& pr  = m_results[di].portResults[pi];
         const auto& cfg = m_results[di].config;
         m_listCtrl.UpdateResult(di, pi, pr);
+        // Also update the matching tab-list if in tab mode
+        if (m_tabMode && di < (int)m_tabLists.size())
+        {
+            std::vector<DestinationResult> single = { m_results[di] };
+            m_tabLists[di]->UpdateResult(0, pi, pr);
+        }
         int done  = CompletedPortCount();
         int total = TotalPortCount();
         SetProgress(done, total);
         CString s;
         const wchar_t* proto = (pr.entry.protocol == Protocol::TCP) ? L"TCP" : L"UDP";
-        s.Format(L"Comprobando %s:%d (%s)  —  %d / %d",
-                 cfg.ip.c_str(), pr.entry.port, proto, done, total);
+        s.Format(L"Comprobando %s:%d (%s)",
+                 cfg.ip.c_str(), pr.entry.port, proto);
         SetStatus(static_cast<LPCWSTR>(s));
     }
     return 0;
@@ -525,7 +543,7 @@ void CMainFrame::OnCfgWiz()
             m_cfgExists = true;
             m_cfgDirty  = false;
             RebuildResults();
-            m_listCtrl.PopulateResults(m_results, m_sourceIP);
+            PopulateCurrentView();
             SetSourceIPPane(m_sourceIP);
             SetStatus(L"Configuración guardada.");
         }
@@ -604,10 +622,14 @@ void CMainFrame::OnClose()
 void CMainFrame::OnSize(UINT nType, int cx, int cy)
 {
     CFrameWnd::OnSize(nType, cx, cy);
-
     if (!m_toolbar.GetSafeHwnd() || cx <= 0) return;
 
-    // Recalculate the stretch separator width so INFO stays right-aligned.
+    // RecalcLayout (called by base OnSize) resets TB button size/padding;
+    // reapply after every resize to maintain consistent spacing.
+    m_toolbar.GetToolBarCtrl().SetButtonSize(CSize(40, 40));
+    m_toolbar.GetToolBarCtrl().SendMessage(TB_SETPADDING, 0, MAKELPARAM(10, 6));
+
+    // ── Stretch separator so INFO stays right-aligned ─────────────────────────
     CToolBarCtrl& tb = m_toolbar.GetToolBarCtrl();
     int btnInfo = -1, btnSep = -1;
     int count = tb.GetButtonCount();
@@ -618,34 +640,230 @@ void CMainFrame::OnSize(UINT nType, int cx, int cy)
         if (tbb.idCommand == IDC_BTN_INFO)     btnInfo = i;
         if (tbb.idCommand == IDC_BTN_INFO_SEP) btnSep  = i;
     }
-    if (btnSep < 0 || btnInfo < 0) return;
+    if (btnSep >= 0 && btnInfo >= 0)
+    {
+        CRect rcInfo; tb.GetItemRect(btnInfo, &rcInfo);
+        CRect rcSep;  tb.GetItemRect(btnSep,  &rcSep);
+        CRect rcTb;   tb.GetClientRect(&rcTb);
+        int stretch = max(8, rcTb.Width() - rcSep.left - rcInfo.Width() - 4);
+        TBBUTTONINFO tbi{}; tbi.cbSize = sizeof(tbi);
+        tbi.dwMask = TBIF_SIZE; tbi.cx = static_cast<WORD>(stretch);
+        tb.SetButtonInfo(IDC_BTN_INFO_SEP, &tbi);
+    }
 
-    // Width of INFO button only
-    CRect rcInfo;
-    tb.GetItemRect(btnInfo, &rcInfo);
-    int rightWidth = rcInfo.Width();
-
-    // Left edge of the separator
-    CRect rcSep;
-    tb.GetItemRect(btnSep, &rcSep);
-    int leftEdge = rcSep.left;
-
-    // Available stretch width
-    CRect rcTb;
-    tb.GetClientRect(&rcTb);
-    int stretch = max(8, rcTb.Width() - leftEdge - rightWidth - 4);
-
-    TBBUTTONINFO tbi{};
-    tbi.cbSize = sizeof(tbi);
-    tbi.dwMask = TBIF_SIZE;
-    tbi.cx     = static_cast<WORD>(stretch);
-    tb.SetButtonInfo(IDC_BTN_INFO_SEP, &tbi);
+    // ── Resize content area ───────────────────────────────────────────────────
+    LayoutContent(cx, cy);
 }
 
 void CMainFrame::OnDestroy()
 {
+    DestroyTabLists();
     m_checker.Stop();
     CFrameWnd::OnDestroy();
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// LayoutContent – resize the active view (list or tab+lists) to fill client area
+// ──────────────────────────────────────────────────────────────────────────────
+void CMainFrame::LayoutContent(int /*cx*/, int /*cy*/)
+{
+    if (!m_listCtrl.GetSafeHwnd()) return;
+
+    CRect rc;
+    GetClientRect(&rc);
+    RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST,
+                   AFX_IDW_PANE_FIRST, reposQuery, &rc, &rc);
+
+    if (!m_tabMode)
+    {
+        m_listCtrl.MoveWindow(&rc);
+    }
+    else
+    {
+        if (!m_tabCtrl.GetSafeHwnd()) return;
+        m_tabCtrl.MoveWindow(&rc);
+
+        // AdjustRect returns body in FRAME client coords (rc origin).
+        // Child lists are parented to m_tabCtrl, so subtract m_tabCtrl origin.
+        CRect rcBody = rc;
+        m_tabCtrl.AdjustRect(FALSE, &rcBody);
+        rcBody.OffsetRect(-rc.left, -rc.top);   // → m_tabCtrl client coords
+        rcBody.DeflateRect(1, 0);               // 1px side margin, no top gap
+
+        int sel = m_tabCtrl.GetCurSel();
+        for (int i = 0; i < (int)m_tabLists.size(); ++i)
+        {
+            if (!m_tabLists[i]->GetSafeHwnd()) continue;
+            m_tabLists[i]->MoveWindow(&rcBody);
+            m_tabLists[i]->ShowWindow(i == sel ? SW_SHOW : SW_HIDE);
+        }
+    }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// DestroyTabLists – delete all per-server CResultListCtrl instances
+// ──────────────────────────────────────────────────────────────────────────────
+void CMainFrame::DestroyTabLists()
+{
+    for (auto* p : m_tabLists)
+    {
+        if (p && p->GetSafeHwnd()) p->DestroyWindow();
+        delete p;
+    }
+    m_tabLists.clear();
+    if (m_tabCtrl.GetSafeHwnd()) m_tabCtrl.DeleteAllItems();
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// PopulateTabView – build one tab + one CResultListCtrl per destination
+// ──────────────────────────────────────────────────────────────────────────────
+void CMainFrame::PopulateTabView()
+{
+    DestroyTabLists();
+    if (m_results.empty()) return;
+
+    CRect rcBody;
+    m_tabCtrl.GetClientRect(&rcBody);
+    m_tabCtrl.AdjustRect(FALSE, &rcBody);
+    // rcBody is already in m_tabCtrl client coords (GetClientRect origin = 0,0)
+    rcBody.DeflateRect(1, 0);
+
+    for (int i = 0; i < (int)m_results.size(); ++i)
+    {
+        const auto& dr = m_results[i];
+
+        // Add tab
+        TCITEM ti{};
+        ti.mask = TCIF_TEXT;
+        CString lbl(dr.config.name.c_str());
+        ti.pszText = lbl.GetBuffer();
+        m_tabCtrl.InsertItem(i, &ti);
+        lbl.ReleaseBuffer();
+
+        // Create per-server list
+        auto* pList = new CResultListCtrl();
+        pList->Create(
+            WS_CHILD | LVS_REPORT | LVS_SHOWSELALWAYS,
+            rcBody, &m_tabCtrl, 2000 + i);
+        pList->Initialise();
+
+        // Wire callbacks (same logic as m_listCtrl but with correct destIdx=i)
+        int destIdx = i;
+        pList->SetCheckToggleCb([this, destIdx](int /*di*/, int pi, bool enabled)
+        {
+            if (destIdx < (int)m_cfg.destinations.size() &&
+                pi < (int)m_cfg.destinations[destIdx].ports.size())
+            {
+                m_cfg.destinations[destIdx].ports[pi].enabled = enabled;
+                if (destIdx < (int)m_results.size() &&
+                    pi < (int)m_results[destIdx].portResults.size())
+                    m_results[destIdx].portResults[pi].enabled = enabled;
+                m_cfgDirty = true;
+                SyncPortEnabled(destIdx, pi);
+            }
+        });
+        pList->SetBatchToggleCb([this, destIdx](int /*di*/, Protocol const* proto, bool enable)
+        {
+            ApplyBatchToggle(destIdx, proto, enable);
+        });
+
+        // Populate with single-server results
+        std::vector<DestinationResult> single = { dr };
+        pList->PopulateResults(single, m_sourceIP);
+
+        pList->ShowWindow(i == 0 ? SW_SHOW : SW_HIDE);
+        m_tabLists.push_back(pList);
+    }
+    if (!m_tabLists.empty()) m_tabCtrl.SetCurSel(0);
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// PopulateCurrentView – refresh whichever view is active
+// ──────────────────────────────────────────────────────────────────────────────
+void CMainFrame::PopulateCurrentView()
+{
+    if (!m_tabMode)
+    {
+        m_listCtrl.PopulateResults(m_results, m_sourceIP);
+    }
+    else
+    {
+        PopulateTabView();
+        CRect rc; GetClientRect(&rc);
+        LayoutContent(rc.Width(), rc.Height());
+    }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// UpdateViewToggleBtn – swap image to reflect current mode
+// ──────────────────────────────────────────────────────────────────────────────
+void CMainFrame::UpdateViewToggleBtn()
+{
+    TBBUTTONINFO tbi{};
+    tbi.cbSize = sizeof(tbi);
+    tbi.dwMask = TBIF_IMAGE | TBIF_TEXT;
+    if (!m_tabMode)
+    {
+        // currently in list mode → button offers to switch TO tabs
+        tbi.iImage  = IMG_VIEW_TABS;
+        tbi.pszText = const_cast<LPWSTR>(L"Vista por pesta\xf1""as");
+    }
+    else
+    {
+        // currently in tab mode → button offers to switch TO list
+        tbi.iImage  = IMG_VIEW_LIST;
+        tbi.pszText = const_cast<LPWSTR>(L"Vista en lista");
+    }
+    m_toolbar.GetToolBarCtrl().SendMessage(
+        TB_SETBUTTONINFOW, IDC_BTN_VIEW_TOGGLE,
+        reinterpret_cast<LPARAM>(&tbi));
+    m_toolbar.Invalidate();
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// ApplyViewMode – show/hide controls according to m_tabMode
+// ──────────────────────────────────────────────────────────────────────────────
+void CMainFrame::ApplyViewMode()
+{
+    if (!m_tabMode)
+    {
+        // Switch to list
+        m_tabCtrl.ShowWindow(SW_HIDE);
+        for (auto* p : m_tabLists) if (p->GetSafeHwnd()) p->ShowWindow(SW_HIDE);
+        m_listCtrl.ShowWindow(SW_SHOW);
+    }
+    else
+    {
+        // Switch to tabs
+        m_listCtrl.ShowWindow(SW_HIDE);
+        PopulateTabView();
+        m_tabCtrl.ShowWindow(SW_SHOW);
+    }
+
+    UpdateViewToggleBtn();
+
+    CRect rc; GetClientRect(&rc);
+    LayoutContent(rc.Width(), rc.Height());
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// OnViewToggle – toolbar button handler
+// ──────────────────────────────────────────────────────────────────────────────
+void CMainFrame::OnViewToggle()
+{
+    m_tabMode = !m_tabMode;
+    ApplyViewMode();
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// OnTabSelChange – show the list for the selected tab
+// ──────────────────────────────────────────────────────────────────────────────
+void CMainFrame::OnTabSelChange(NMHDR* /*pNMHDR*/, LRESULT* pResult)
+{
+    int sel = m_tabCtrl.GetCurSel();
+    for (int i = 0; i < (int)m_tabLists.size(); ++i)
+        m_tabLists[i]->ShowWindow(i == sel ? SW_SHOW : SW_HIDE);
+    *pResult = 0;
 }
 
 BOOL CMainFrame::OnCmdMsg(UINT nID, int nCode, void* pExtra,
@@ -712,9 +930,21 @@ int CMainFrame::CompletedPortCount() const
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
+// SyncPortEnabled – update checkbox visual in BOTH views for one port
+// ──────────────────────────────────────────────────────────────────────────────
+void CMainFrame::SyncPortEnabled(int di, int pi)
+{
+    if (di >= (int)m_results.size() ||
+        pi >= (int)m_results[di].portResults.size()) return;
+    const PortResult& pr = m_results[di].portResults[pi];
+    m_listCtrl.UpdateResult(di, pi, pr);
+    if (di < (int)m_tabLists.size() && m_tabLists[di]->GetSafeHwnd())
+        m_tabLists[di]->UpdateResult(0, pi, pr);
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 // ApplyBatchToggle – propagate context-menu batch operation into m_cfg/m_results
-// destIdx == -1  → all destinations
-// proto   == nullptr → all protocols
+// destIdx == -1  → all destinations   proto == nullptr → all protocols
 // ──────────────────────────────────────────────────────────────────────────────
 void CMainFrame::ApplyBatchToggle(int destIdx, Protocol const* proto, bool enable)
 {
@@ -731,4 +961,9 @@ void CMainFrame::ApplyBatchToggle(int destIdx, Protocol const* proto, bool enabl
         }
     }
     m_cfgDirty = true;
-}// ──────────────────────────────────────────────────────────────────────────────
+    for (int di2 = 0; di2 < (int)m_results.size(); ++di2)
+        if (destIdx < 0 || di2 == destIdx)
+            for (int pi2 = 0; pi2 < (int)m_results[di2].portResults.size(); ++pi2)
+                SyncPortEnabled(di2, pi2);
+}
+// ──────────────────────────────────────────────────────────────────────────────

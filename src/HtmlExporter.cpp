@@ -51,7 +51,6 @@ bool HtmlExporter::Export(const wchar_t* path,
       << L".noresp{color:#4444aa;font-weight:600}\n"
       << L".unk{color:#b47800;font-weight:600}\n"
       << L".pend{color:#969696}\n"
-      << L".dis{color:#aaa;font-style:italic}\n"
       << L"</style></head><body>\n"
       << L"<h1>&#x1F5CE; NetChecker Connectivity Report"
       << L"<span class=\"src\"> &mdash; IP de origen: "
@@ -78,13 +77,7 @@ bool HtmlExporter::Export(const wchar_t* path,
             {
                 if (pr.entry.protocol != passProto) continue;
 
-                if (!pr.enabled) {
-                    f << L"<tr><td>" << pr.entry.port << L"</td><td>"
-                      << StrUtil::ProtoText(pr.entry.protocol) << L"</td><td>"
-                      << pr.entry.description
-                      << L"</td><td class=\"dis\">Deshabilitado</td><td>&ndash;</td></tr>\n";
-                    continue;
-                }
+                if (!pr.enabled) continue;  // skip ports not selected for checking
                 const wchar_t* cls = L"pend";
                 switch (pr.status) {
                 case ConnectStatus::OK:          cls = L"ok";     break;

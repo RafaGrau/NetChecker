@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "ConfigManager.h"
 #include "XmlLite.h"
+#include "AppTypes.h"   // PortDB::PortDefaultDesc
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Static helpers
@@ -51,8 +52,10 @@ bool ConfigManager::Load(const wchar_t* path, AppConfig& out)
                 PortEntry pe;
                 pe.port        = portNode->AttrInt(L"port");
                 pe.protocol    = ParseProto(portNode->Attr(L"protocol"));
-                pe.description = portNode->Attr(L"description");
                 pe.enabled     = portNode->AttrBool(L"enabled", true);
+                // Description is not persisted; resolve from well-known table
+                const wchar_t* d = PortDB::PortDefaultDesc(pe.port, pe.protocol);
+                pe.description = d ? d : L"";
                 dc.ports.push_back(pe);
             }
         }
@@ -83,10 +86,9 @@ bool ConfigManager::Save(const wchar_t* path, const AppConfig& cfg)
         for (const auto& pe : dest.ports)
         {
             w.EmptyElement(L"Port", {
-                {L"port",        std::to_wstring(pe.port)},
-                {L"protocol",    pe.protocol == Protocol::TCP ? L"TCP" : L"UDP"},
-                {L"description", pe.description},
-                {L"enabled",     pe.enabled ? L"1" : L"0"}
+                {L"port",     std::to_wstring(pe.port)},
+                {L"protocol", pe.protocol == Protocol::TCP ? L"TCP" : L"UDP"},
+                {L"enabled",  pe.enabled ? L"1" : L"0"}
             });
         }
         w.Close(L"Ports");

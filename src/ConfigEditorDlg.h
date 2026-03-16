@@ -21,9 +21,12 @@ protected:
 
     afx_msg void OnBtnAddServer();
     afx_msg void OnBtnRemServer();
+    afx_msg void OnBtnImportCsv();
+    afx_msg void OnBtnExportCsv();
     afx_msg void OnBtnAddPort();
     afx_msg void OnBtnUpdPort();
     afx_msg void OnBtnDelPort();
+    afx_msg void OnPortEditKillFocus();
     afx_msg void OnTabSelChange  (NMHDR* pNMHDR, LRESULT* pResult);
     afx_msg void OnListItemChange(NMHDR* pNMHDR, LRESULT* pResult);
     afx_msg void OnListColumnClick(NMHDR* pNMHDR, LRESULT* pResult);

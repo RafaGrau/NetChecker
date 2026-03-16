@@ -133,30 +133,33 @@ ConnectStatus NetworkChecker::CheckUDP(const std::wstring& ip, int port, DWORD& 
 void NetworkChecker::WorkerProc(std::vector<DestinationResult>* results,
                                 ResultCb onResult, CompleteCb onComplete)
 {
-    // Two-pass: all TCP ports first, then all UDP ports
-    for (int pass = 0; pass < 2 && !m_stopReq; ++pass)
+    // Per-server: TCP ports first, then UDP ports for each destination.
+    // This gives results server-by-server rather than protocol-by-protocol.
+    for (int di = 0; di < static_cast<int>(results->size()) && !m_stopReq; ++di)
     {
-        Protocol passProto = (pass == 0) ? Protocol::TCP : Protocol::UDP;
-        for (int di = 0; di < static_cast<int>(results->size()) && !m_stopReq; ++di)
+        auto& dr = (*results)[di];
+
+        for (int pass = 0; pass < 2 && !m_stopReq; ++pass)
         {
-            auto& dr = (*results)[di];
+            Protocol passProto = (pass == 0) ? Protocol::TCP : Protocol::UDP;
             for (int pi = 0; pi < static_cast<int>(dr.portResults.size()) && !m_stopReq; ++pi)
             {
                 auto& pr = dr.portResults[pi];
                 if (pr.entry.protocol != passProto) continue;
-                if (!pr.enabled) { pr.status = ConnectStatus::DISABLED; }
+
+                if (!pr.enabled)
+                    pr.status = ConnectStatus::DISABLED;
                 else
-                {
                     pr.status = (passProto == Protocol::TCP)
                         ? CheckTCP(dr.config.ip, pr.entry.port, pr.latencyMs)
                         : CheckUDP(dr.config.ip, pr.entry.port, pr.latencyMs);
-                }
+
                 if (onResult) onResult(di, pi);
             }
         }
+        dr.completed = true;
     }
-    // Mark all destinations complete
-    for (auto& dr : *results) dr.completed = true;
+
     m_running = false;
     if (onComplete) onComplete();
 }

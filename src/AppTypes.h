@@ -81,6 +81,7 @@ namespace PortDB
     std::vector<PortEntry> GetPorts(DestinationType t);
     const wchar_t*         TypeName(DestinationType t);
     const wchar_t*         TypeTag (DestinationType t);
+    const wchar_t*         PortDefaultDesc(int port, Protocol proto); // well-known port description
 }
 
 // ──────────────────────────────────────────────────────────────────

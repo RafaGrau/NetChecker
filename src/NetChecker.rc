@@ -19,7 +19,6 @@ BEGIN
 END
 
 IDR_MAINFRAME   ICON    "..\\res\\icon_app.ico"
-IDI_ICON_GITHUB ICON    "..\\res\\icon_github.ico"
 
 // Toolbar icons as ICON resources (32x32 loaded at runtime via LoadImage)
 IDI_ICON_RUN     ICON   "..\\res\\icon_run.ico"
@@ -30,6 +29,9 @@ IDI_ICON_RELOAD  ICON   "..\\res\\icon_reload.ico"
 IDI_ICON_CFGEDIT ICON   "..\\res\\icon_cfgedit.ico"
 IDI_ICON_INFO    ICON   "..\\res\\icon_info.ico"
 IDI_ICON_EXIT    ICON   "..\\res\\icon_exit.ico"
+IDI_ICON_GITHUB  ICON   "..\\res\\icon_github.ico"
+IDI_ICON_VIEWTABS ICON  "..\\res\\view_tabs.ico"
+IDI_ICON_VIEWLIST ICON  "..\\res\\view_list.ico"
 
 // cp1252: 0xE1=a 0xE9=e 0xED=i 0xF3=o 0xFA=u 0xF1=n~ 0xBF=?inv
 
@@ -162,6 +164,8 @@ BEGIN
     PUSHBUTTON      "Actualizar",IDC_CFG_BTN_UPD_PORT,76,281,55,14
     PUSHBUTTON      "Eliminar puerto",IDC_CFG_BTN_DEL_PORT,135,281,65,14
     PUSHBUTTON      "Eliminar servidor",IDC_CFG_BTN_REM_SRV,7,316,80,14
+    PUSHBUTTON      "Importar CSV",IDC_CFG_BTN_IMPORT_CSV,96,316,65,14
+    PUSHBUTTON      "Exportar CSV",IDC_CFG_BTN_EXPORT_CSV,165,316,65,14
     DEFPUSHBUTTON   "Aceptar",IDOK,365,316,60,14
     PUSHBUTTON      "Cancelar",IDCANCEL,430,316,55,14
 END

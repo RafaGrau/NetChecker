@@ -13,10 +13,12 @@ enum TbImg
     IMG_RUN = 0,
     IMG_STOP,
     IMG_HTML,
-    IMG_SAVE,       // icon_save.ico  – Guardar config
+    IMG_SAVE,       // icon_save.ico    – Guardar config
     IMG_RELOAD,
     IMG_CFGEDIT,    // icon_cfgedit.ico – Editor de configuración
-    IMG_INFO,       // icon_info.ico  – Acerca de / Info
+    IMG_VIEW_TABS,  // view_tabs.ico    – Cambiar a vista por pestañas
+    IMG_VIEW_LIST,  // view_list.ico    – Cambiar a vista en lista
+    IMG_INFO,       // icon_info.ico    – Acerca de / Info
     IMG_EXIT,
     IMG_COUNT
 };
@@ -46,6 +48,7 @@ protected:
     void OnSaveCfg();
     void OnReloadCfg();
     void OnCfgWiz();
+    void OnViewToggle();
     void OnInfo();
     void OnAutofit();
     void OnFileExit();
@@ -59,6 +62,7 @@ protected:
     // ── Custom window messages ───────────────────────────────────────────────
     afx_msg LRESULT OnNcResult  (WPARAM wParam, LPARAM lParam);
     afx_msg LRESULT OnNcComplete(WPARAM wParam, LPARAM lParam);
+    afx_msg void    OnTabSelChange(NMHDR* pNMHDR, LRESULT* pResult);
 
     DECLARE_MESSAGE_MAP()
 
@@ -68,6 +72,8 @@ private:
     CStatusBar      m_statusBar;
     CProgressCtrl   m_progress;
     CResultListCtrl m_listCtrl;
+    CTabCtrl        m_tabCtrl;          // tab bar for per-server view
+    std::vector<CResultListCtrl*> m_tabLists; // one list per server tab
     CImageList      m_ilNormal;
     CImageList      m_ilDisabled;
 
@@ -78,12 +84,19 @@ private:
     ConfigManager                  m_cfgMgr;
     std::wstring                   m_sourceIP;  // detected at runtime, not persisted
     bool                           m_cfgDirty   { false };
-    bool                           m_cfgExists  { false };  // config file loaded at least once
+    bool                           m_cfgExists  { false };
     bool                           m_hasResults { false };
+    bool                           m_tabMode    { false }; // false=list, true=tabs
 
     // ── Helpers ───────────────────────────────────────────────────────────────
     void BuildToolbar();
     void BuildImageLists();
+    void PopulateCurrentView();    // refresh list or tab view
+    void ApplyViewMode();          // show/hide list vs tab+lists, resize
+    void DestroyTabLists();        // free m_tabLists
+    void PopulateTabView();        // fill all per-server lists
+    void UpdateViewToggleBtn();    // swap icon on the toggle button
+    void LayoutContent(int cx, int cy); // common resize for list/tab mode
 
     void DoLoadConfig(bool showSetupIfMissing = true);
     void DoReloadConfig(bool force);
@@ -97,6 +110,7 @@ private:
     void SyncToolbarRunStop(bool running);
 
     void ApplyBatchToggle(int destIdx, Protocol const* proto, bool enable);
+    void SyncPortEnabled(int di, int pi);   // refresh checkbox in both views
 
     int  TotalPortCount() const;
     int  CompletedPortCount() const;

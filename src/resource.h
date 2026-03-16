@@ -20,6 +20,7 @@
 #define IDC_BTN_INFO            207
 #define IDC_BTN_INFO_SEP        209   // stretch separator before INFO (right-aligned)
 #define IDC_BTN_EXIT            208
+#define IDC_BTN_VIEW_TOGGLE     210   // toggle list/tab view
 
 // ── Context menu ──────────────────────────────────────────────────────────────
 #define IDR_CONTEXT_LIST        401
@@ -51,6 +52,8 @@
 #define IDC_CFG_BTN_ADD_PORT    611
 #define IDC_CFG_BTN_UPD_PORT    612
 #define IDC_CFG_BTN_DEL_PORT    613
+#define IDC_CFG_BTN_IMPORT_CSV  614
+#define IDC_CFG_BTN_EXPORT_CSV  615
 
 
 
@@ -64,3 +67,6 @@
 #define IDI_ICON_CFGEDIT 706   // icon_cfgedit.ico – Editor de configuración
 #define IDI_ICON_INFO    707   // icon_info.ico    – Información
 #define IDI_ICON_EXIT    708
+#define IDI_ICON_GITHUB  709   // icon_github.ico  – used in About dialog
+#define IDI_ICON_VIEWTABS 710  // view_tabs.ico    – switch to tab view
+#define IDI_ICON_VIEWLIST 711  // view_list.ico    – switch to list view

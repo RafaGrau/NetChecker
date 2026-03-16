@@ -103,6 +103,71 @@ const wchar_t* TypeTag(DestinationType t)
 
 } // namespace PortDB
 
+namespace PortDB
+{
+const wchar_t* PortDefaultDesc(int port, Protocol proto)
+{
+    struct Entry { int port; Protocol proto; const wchar_t* desc; };
+    static const Entry kTable[] =
+    {
+        {   7, Protocol::TCP, L"Echo"},
+        {   9, Protocol::UDP, L"Wake On LAN"},
+        {  20, Protocol::TCP, L"FTP Data"},
+        {  21, Protocol::TCP, L"FTP Control"},
+        {  22, Protocol::TCP, L"SSH"},
+        {  23, Protocol::TCP, L"Telnet"},
+        {  25, Protocol::TCP, L"SMTP"},
+        {  53, Protocol::TCP, L"DNS"},
+        {  53, Protocol::UDP, L"DNS (UDP)"},
+        {  67, Protocol::UDP, L"DHCP Server"},
+        {  68, Protocol::UDP, L"DHCP Client"},
+        {  69, Protocol::UDP, L"TFTP"},
+        {  80, Protocol::TCP, L"HTTP"},
+        {  88, Protocol::TCP, L"Kerberos"},
+        {  88, Protocol::UDP, L"Kerberos (UDP)"},
+        { 110, Protocol::TCP, L"POP3"},
+        { 123, Protocol::UDP, L"NTP"},
+        { 135, Protocol::TCP, L"RPC Endpoint Mapper"},
+        { 137, Protocol::UDP, L"NetBIOS Name"},
+        { 138, Protocol::UDP, L"NetBIOS Datagram"},
+        { 139, Protocol::TCP, L"NetBIOS Session"},
+        { 143, Protocol::TCP, L"IMAP"},
+        { 161, Protocol::UDP, L"SNMP"},
+        { 162, Protocol::UDP, L"SNMP Trap"},
+        { 389, Protocol::TCP, L"LDAP"},
+        { 389, Protocol::UDP, L"LDAP (UDP)"},
+        { 443, Protocol::TCP, L"HTTPS"},
+        { 445, Protocol::TCP, L"SMB"},
+        { 464, Protocol::TCP, L"Kerberos Pwd Change"},
+        { 464, Protocol::UDP, L"Kerberos Pwd Change (UDP)"},
+        { 465, Protocol::TCP, L"SMTPS"},
+        { 514, Protocol::UDP, L"Syslog"},
+        { 515, Protocol::TCP, L"LPD"},
+        { 587, Protocol::TCP, L"SMTP Submission"},
+        { 631, Protocol::TCP, L"IPP"},
+        { 636, Protocol::TCP, L"LDAPS"},
+        { 993, Protocol::TCP, L"IMAPS"},
+        { 995, Protocol::TCP, L"POP3S"},
+        {1433, Protocol::TCP, L"SQL Server"},
+        {1434, Protocol::UDP, L"SQL Server Browser"},
+        {2701, Protocol::TCP, L"SCCM Remote Control"},
+        {3268, Protocol::TCP, L"LDAP Global Catalog"},
+        {3269, Protocol::TCP, L"LDAP Global Catalog SSL"},
+        {3389, Protocol::TCP, L"RDP"},
+        {5985, Protocol::TCP, L"WinRM HTTP"},
+        {5986, Protocol::TCP, L"WinRM HTTPS"},
+        {8530, Protocol::TCP, L"WSUS HTTP"},
+        {8531, Protocol::TCP, L"WSUS HTTPS"},
+        {9100, Protocol::TCP, L"RAW Printing (JetDirect)"},
+        {9389, Protocol::TCP, L"AD Web Services"},
+        {10123,Protocol::TCP, L"SCCM Client \x2192 MP (alt)"},
+    };
+    for (const auto& e : kTable)
+        if (e.port == port && e.proto == proto) return e.desc;
+    return nullptr;
+}
+} // namespace PortDB
+
 namespace StrUtil
 {
 const wchar_t* StatusText(ConnectStatus s)

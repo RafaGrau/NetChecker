@@ -1,5 +1,6 @@
 #include "pch.h"
 #include <algorithm>
+#include <fstream>
 #include "ConfigEditorDlg.h"
 
 IMPLEMENT_DYNAMIC(CConfigEditorDlg, CDialogEx)
@@ -7,9 +8,12 @@ IMPLEMENT_DYNAMIC(CConfigEditorDlg, CDialogEx)
 BEGIN_MESSAGE_MAP(CConfigEditorDlg, CDialogEx)
     ON_BN_CLICKED(IDC_CFG_BTN_ADD_SRV,  &CConfigEditorDlg::OnBtnAddServer)
     ON_BN_CLICKED(IDC_CFG_BTN_REM_SRV,  &CConfigEditorDlg::OnBtnRemServer)
+    ON_BN_CLICKED(IDC_CFG_BTN_IMPORT_CSV,&CConfigEditorDlg::OnBtnImportCsv)
+    ON_BN_CLICKED(IDC_CFG_BTN_EXPORT_CSV,&CConfigEditorDlg::OnBtnExportCsv)
     ON_BN_CLICKED(IDC_CFG_BTN_ADD_PORT, &CConfigEditorDlg::OnBtnAddPort)
     ON_BN_CLICKED(IDC_CFG_BTN_UPD_PORT, &CConfigEditorDlg::OnBtnUpdPort)
     ON_BN_CLICKED(IDC_CFG_BTN_DEL_PORT, &CConfigEditorDlg::OnBtnDelPort)
+    ON_EN_KILLFOCUS(IDC_CFG_EDIT_PORT,  &CConfigEditorDlg::OnPortEditKillFocus)
     ON_NOTIFY(TCN_SELCHANGE,   IDC_CFG_TAB,  &CConfigEditorDlg::OnTabSelChange)
     ON_NOTIFY(LVN_ITEMCHANGED, IDC_CFG_LIST, &CConfigEditorDlg::OnListItemChange)
     ON_NOTIFY(LVN_COLUMNCLICK, IDC_CFG_LIST, &CConfigEditorDlg::OnListColumnClick)
@@ -126,10 +130,33 @@ void CConfigEditorDlg::SwitchToServer(int idx)
     {
         m_tab.SetCurSel(idx);
         PopulateList(idx);
+
+        // Fill form fields with selected server's data
+        const auto& srv = m_servers[idx];
+        m_edName.SetWindowText(srv.name.c_str());
+        SetIP(srv.ip);
+
+        static const DestinationType kTypes[] =
+        {
+            DestinationType::DC, DestinationType::PrintServer,
+            DestinationType::SCCM_Full, DestinationType::SCCM_DP
+        };
+        for (int t = 0; t < 4; ++t)
+            if (kTypes[t] == srv.type) { m_cbType.SetCurSel(t); break; }
+
+        // Button changes to "Actualizar" when a server is selected
+        if (auto* p = GetDlgItem(IDC_CFG_BTN_ADD_SRV))
+            p->SetWindowText(L"Actualizar");
     }
     else
     {
         m_list.DeleteAllItems();
+        // No server selected – clear form and restore "Agregar" label
+        m_edName.SetWindowText(L"");
+        m_edIP.SendMessage(IPM_CLEARADDRESS, 0, 0);
+        m_cbType.SetCurSel(0);
+        if (auto* p = GetDlgItem(IDC_CFG_BTN_ADD_SRV))
+            p->SetWindowText(L"Agregar");
     }
     // Clear port editor
     m_edPort.SetWindowText(L"");
@@ -207,44 +234,58 @@ void CConfigEditorDlg::OnBtnAddServer()
     m_edIP.SendMessage(IPM_GETADDRESS, 0, (LPARAM)&ipVal);
     if (ipVal == 0)
     {
-        MessageBox(L"Introduzca una direcci\xf3n IP v\xe1lida.", L"Campo requerido", MB_ICONWARNING);
+        MessageBox(L"Introduzca una dirección IP válida.", L"Campo requerido", MB_ICONWARNING);
         m_edIP.SetFocus();
         return;
     }
 
     static const DestinationType kTypes[] =
     {
-        DestinationType::DC,
-        DestinationType::PrintServer,
-        DestinationType::SCCM_Full,
-        DestinationType::SCCM_DP
+        DestinationType::DC, DestinationType::PrintServer,
+        DestinationType::SCCM_Full, DestinationType::SCCM_DP
     };
     int typeIdx = m_cbType.GetCurSel();
     if (typeIdx < 0) typeIdx = 0;
     DestinationType dt = kTypes[typeIdx];
 
+    // ── UPDATE existing server ────────────────────────────────────────────────
+    if (m_curSrv >= 0 && m_curSrv < (int)m_servers.size())
+    {
+        auto& srv = m_servers[m_curSrv];
+        srv.name = name.GetString();
+        srv.ip   = GetIP();
+        srv.type = dt;
+
+        // Update tab label
+        TCITEM ti{};
+        ti.mask    = TCIF_TEXT;
+        CString lbl(name);
+        ti.pszText = lbl.GetBuffer();
+        m_tab.SetItem(m_curSrv, &ti);
+        lbl.ReleaseBuffer();
+
+        // Redraw the port grid so it stays visible after the update
+        PopulateList(m_curSrv);
+        return;
+    }
+
+    // ── ADD new server ────────────────────────────────────────────────────────
     DestinationConfig dc;
     dc.name  = name.GetString();
     dc.ip    = GetIP();
     dc.type  = dt;
-    dc.ports = PortDB::GetPorts(dt);    // default ports for this server type
+    dc.ports = PortDB::GetPorts(dt);
     for (auto& pe : dc.ports) pe.enabled = true;
 
     m_servers.push_back(std::move(dc));
     int newIdx = (int)m_servers.size() - 1;
 
-    // Add tab
     TCITEM ti{};
     ti.mask    = TCIF_TEXT;
     CString lbl(name);
     ti.pszText = lbl.GetBuffer();
     m_tab.InsertItem(newIdx, &ti);
     lbl.ReleaseBuffer();
-
-    // Clear input form
-    m_edName.SetWindowText(L"");
-    m_edIP.SendMessage(IPM_CLEARADDRESS, 0, 0);
-    m_cbType.SetCurSel(0);
 
     PositionList();
     SwitchToServer(newIdx);
@@ -268,8 +309,32 @@ void CConfigEditorDlg::OnBtnRemServer()
     else
     {
         m_list.DeleteAllItems();
+        m_edName.SetWindowText(L"");
+        m_edIP.SendMessage(IPM_CLEARADDRESS, 0, 0);
+        m_cbType.SetCurSel(0);
+        if (auto* p = GetDlgItem(IDC_CFG_BTN_ADD_SRV))
+            p->SetWindowText(L"Agregar");
         UpdateButtonStates();
     }
+}
+
+
+void CConfigEditorDlg::OnPortEditKillFocus()
+{
+    // Only suggest when description is empty (don't overwrite user text)
+    CString descText;
+    m_edDesc.GetWindowText(descText);
+    if (!descText.IsEmpty()) return;
+
+    CString portStr;
+    m_edPort.GetWindowText(portStr);
+    portStr.Trim();
+    int pnum = _wtoi(portStr);
+    if (pnum < 1 || pnum > 65535) return;
+
+    Protocol proto = (m_cbProto.GetCurSel() == 0) ? Protocol::TCP : Protocol::UDP;
+    const wchar_t* desc = PortDB::PortDefaultDesc(pnum, proto);
+    if (desc) m_edDesc.SetWindowText(desc);
 }
 
 void CConfigEditorDlg::OnBtnAddPort()
@@ -439,6 +504,144 @@ void CConfigEditorDlg::UpdateButtonStates()
     enable(IDC_CFG_BTN_ADD_PORT, hasSrv);
     enable(IDC_CFG_BTN_UPD_PORT, hasSel);
     enable(IDC_CFG_BTN_DEL_PORT, hasSel);
+}
+
+// ── CSV helpers ────────────────────────────────────────────────────────────────
+// Format: hostname,ip,type,port/TCP,port/UDP,...
+// type values: DC | PrintServer | SCCM | SCCM_DP
+
+static DestinationType CsvParseType(const std::wstring& s)
+{
+    if (s == L"DC")          return DestinationType::DC;
+    if (s == L"PrintServer") return DestinationType::PrintServer;
+    if (s == L"SCCM")        return DestinationType::SCCM_Full;
+    if (s == L"SCCM_DP")     return DestinationType::SCCM_DP;
+    return DestinationType::DC;
+}
+static const wchar_t* CsvTypeName(DestinationType t)
+{
+    switch (t)
+    {
+    case DestinationType::DC:          return L"DC";
+    case DestinationType::PrintServer: return L"PrintServer";
+    case DestinationType::SCCM_Full:   return L"SCCM";
+    case DestinationType::SCCM_DP:     return L"SCCM_DP";
+    }
+    return L"DC";
+}
+static std::vector<std::wstring> CsvSplit(const std::wstring& line)
+{
+    std::vector<std::wstring> cols;
+    std::wstring cur;
+    for (wchar_t c : line)
+    {
+        if (c == L',') { cols.push_back(cur); cur.clear(); }
+        else             cur += c;
+    }
+    cols.push_back(cur);
+    return cols;
+}
+
+void CConfigEditorDlg::OnBtnExportCsv()
+{
+    if (m_servers.empty())
+    {
+        MessageBox(L"No hay servidores que exportar.", L"Exportar CSV", MB_ICONINFORMATION);
+        return;
+    }
+    CFileDialog dlg(FALSE, L"csv", L"NetChecker_servers.csv",
+        OFN_OVERWRITEPROMPT,
+        L"Archivos CSV (*.csv)|*.csv|Todos (*.*)|*.*||", this);
+    if (dlg.DoModal() != IDOK) return;
+
+    std::wofstream f(dlg.GetPathName().GetString());
+    if (!f.is_open()) { MessageBox(L"No se pudo crear el archivo.", L"Error", MB_ICONERROR); return; }
+
+    // Header
+    f << L"hostname,ip,type,ports (port/proto)\n";
+
+    for (const auto& srv : m_servers)
+    {
+        f << srv.name << L"," << srv.ip << L"," << CsvTypeName(srv.type);
+        for (const auto& pe : srv.ports)
+            f << L"," << pe.port << L"/" << (pe.protocol == Protocol::TCP ? L"TCP" : L"UDP");
+        f << L"\n";
+    }
+    if (!f.good()) { MessageBox(L"Error al escribir el archivo.", L"Error", MB_ICONERROR); return; }
+    MessageBox(L"Exportación completada.", L"Exportar CSV", MB_ICONINFORMATION);
+}
+
+void CConfigEditorDlg::OnBtnImportCsv()
+{
+    CFileDialog dlg(TRUE, L"csv", nullptr,
+        OFN_FILEMUSTEXIST,
+        L"Archivos CSV (*.csv)|*.csv|Todos (*.*)|*.*||", this);
+    if (dlg.DoModal() != IDOK) return;
+
+    std::wifstream f(dlg.GetPathName().GetString());
+    if (!f.is_open()) { MessageBox(L"No se pudo abrir el archivo.", L"Error", MB_ICONERROR); return; }
+
+    int imported = 0, skipped = 0;
+    std::wstring line;
+    bool firstLine = true;
+
+    while (std::getline(f, line))
+    {
+        // Remove trailing \r
+        if (!line.empty() && line.back() == L'\r') line.pop_back();
+        if (line.empty()) continue;
+
+        // Skip header row (starts with "hostname" case-insensitive)
+        if (firstLine)
+        {
+            firstLine = false;
+            std::wstring low = line;
+            for (auto& c : low) c = towlower(c);
+            if (low.find(L"hostname") != std::wstring::npos) continue;
+        }
+
+        auto cols = CsvSplit(line);
+        if (cols.size() < 4) { ++skipped; continue; }
+
+        DestinationConfig dc;
+        dc.name = cols[0];
+        dc.ip   = cols[1];
+        dc.type = CsvParseType(cols[2]);
+
+        // Remaining columns: port/PROTO
+        for (size_t i = 3; i < cols.size(); ++i)
+        {
+            auto& token = cols[i];
+            auto slash = token.find(L'/');
+            if (slash == std::wstring::npos) continue;
+            int port = _wtoi(token.substr(0, slash).c_str());
+            if (port < 1 || port > 65535) continue;
+            Protocol proto = (token.substr(slash + 1) == L"UDP")
+                             ? Protocol::UDP : Protocol::TCP;
+            PortEntry pe{port, proto, L"", true};
+            const wchar_t* desc = PortDB::PortDefaultDesc(port, proto);
+            if (desc) pe.description = desc;
+            dc.ports.push_back(pe);
+        }
+
+        if (dc.name.empty() || dc.ip.empty() || dc.ports.empty()) { ++skipped; continue; }
+        m_servers.push_back(std::move(dc));
+        ++imported;
+    }
+
+    if (imported == 0)
+    {
+        CString msg; msg.Format(L"No se importó ningún servidor. Líneas omitidas: %d", skipped);
+        MessageBox(msg, L"Importar CSV", MB_ICONWARNING);
+        return;
+    }
+
+    RefreshTabs();
+    SwitchToServer((int)m_servers.size() - 1);
+
+    CString msg;
+    msg.Format(L"Importados: %d servidor(es). Omitidos: %d", imported, skipped);
+    MessageBox(msg, L"Importar CSV", MB_ICONINFORMATION);
 }
 
 // ── OK / Cancel ────────────────────────────────────────────────────────────────
