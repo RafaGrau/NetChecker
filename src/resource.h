@@ -18,6 +18,7 @@
 #define IDC_BTN_AUTOFIT         205
 #define IDC_BTN_CFG_WIZ         206
 #define IDC_BTN_INFO            207
+#define IDC_BTN_HELP            211
 #define IDC_BTN_INFO_SEP        209   // stretch separator before INFO (right-aligned)
 #define IDC_BTN_EXIT            208
 #define IDC_BTN_VIEW_TOGGLE     210   // toggle list/tab view
@@ -54,19 +55,23 @@
 #define IDC_CFG_BTN_DEL_PORT    613
 #define IDC_CFG_BTN_IMPORT_CSV  614
 #define IDC_CFG_BTN_EXPORT_CSV  615
+#define IDC_CFG_BTN_NEW_SRV     616   // always creates new server
 
 
 
 
 // ── Toolbar icon resource IDs (ICON resources – ICO files embedded in EXE) ───
-#define IDI_ICON_RUN     701
-#define IDI_ICON_STOP    702
-#define IDI_ICON_HTML    703
-#define IDI_ICON_SAVE    704   // icon_save.ico    – Guardar config
-#define IDI_ICON_RELOAD  705
-#define IDI_ICON_CFGEDIT 706   // icon_cfgedit.ico – Editor de configuración
-#define IDI_ICON_INFO    707   // icon_info.ico    – Información
-#define IDI_ICON_EXIT    708
-#define IDI_ICON_GITHUB  709   // icon_github.ico  – used in About dialog
-#define IDI_ICON_VIEWTABS 710  // view_tabs.ico    – switch to tab view
-#define IDI_ICON_VIEWLIST 711  // view_list.ico    – switch to list view
+#define IDI_ICON_RUN      701  // play.ico
+#define IDI_ICON_STOP     702  // stop.ico
+#define IDI_ICON_HTML     703  // html.ico
+#define IDI_ICON_SAVE     704  // cfg_save.ico
+#define IDI_ICON_RELOAD   705  // cfg_reload.ico
+#define IDI_ICON_CFGEDIT  706  // cfg_edit.ico
+#define IDI_ICON_INFO     707  // info.ico
+#define IDI_ICON_EXIT     708  // exit.ico
+#define IDI_ICON_GITHUB   709  // github.ico – About dialog
+#define IDI_ICON_VIEWTABS 710  // view_tabs.ico
+#define IDI_ICON_VIEWLIST 711  // view_list.ico
+#define IDI_ICON_HELP     712  // help.ico
+#define IDI_ICON_SRV_ADD  713  // srv_add.ico
+#define IDI_ICON_SAVE2    714  // save.ico

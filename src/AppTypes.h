@@ -47,6 +47,8 @@ struct PortResult
     PortEntry     entry;
     ConnectStatus status    { ConnectStatus::PENDING };
     DWORD         latencyMs { 0 };
+    DWORD         bytesSent { 0 };   // bytes transmitted during probe
+    DWORD         bytesRecv { 0 };   // bytes received during probe
     bool          enabled;
 
     PortResult() : enabled(true) {}

@@ -10,9 +10,10 @@
 // ──────────────────────────────────────────────────────────────────────────────
 // TCP connect with 3-second timeout (non-blocking socket + select)
 // ──────────────────────────────────────────────────────────────────────────────
-ConnectStatus NetworkChecker::CheckTCP(const std::wstring& ip, int port, DWORD& latMs)
+ConnectStatus NetworkChecker::CheckTCP(const std::wstring& ip, int port, DWORD& latMs,
+                                       DWORD& bytesSent, DWORD& bytesRecv)
 {
-    latMs = 0;
+    latMs = 0; bytesSent = 0; bytesRecv = 0;
 
     // Convert wide IP to narrow
     char ipA[64] = {};
@@ -52,6 +53,13 @@ ConnectStatus NetworkChecker::CheckTCP(const std::wstring& ip, int port, DWORD& 
             latMs  = static_cast<DWORD>(
                 std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count());
             result = ConnectStatus::OK;
+            // TCP: SYN is ~40 bytes; send a minimal HTTP HEAD to get recv data
+            const char probe[] = "HEAD / HTTP/1.0\r\n\r\n";
+            int sent = ::send(s, probe, static_cast<int>(sizeof(probe) - 1), 0);
+            bytesSent = (sent > 0) ? static_cast<DWORD>(sent) : 40; // fallback: SYN size
+            char buf[512] = {};
+            int r = ::recv(s, buf, sizeof(buf) - 1, 0);
+            bytesRecv = (r > 0) ? static_cast<DWORD>(r) : 0;
         }
     }
     else if (sel == 0)
@@ -69,9 +77,10 @@ ConnectStatus NetworkChecker::CheckTCP(const std::wstring& ip, int port, DWORD& 
 // timeout                               → UNKNOWN (port may be open/filtered);
 // recv data                             → OK.
 // ──────────────────────────────────────────────────────────────────────────────
-ConnectStatus NetworkChecker::CheckUDP(const std::wstring& ip, int port, DWORD& latMs)
+ConnectStatus NetworkChecker::CheckUDP(const std::wstring& ip, int port, DWORD& latMs,
+                                       DWORD& bytesSent, DWORD& bytesRecv)
 {
-    latMs = 0;
+    latMs = 0; bytesSent = 0; bytesRecv = 0;
 
     char ipA[64] = {};
     WideCharToMultiByte(CP_ACP, 0, ip.c_str(), -1, ipA, sizeof(ipA), nullptr, nullptr);
@@ -95,7 +104,8 @@ ConnectStatus NetworkChecker::CheckUDP(const std::wstring& ip, int port, DWORD& 
 
     const char probe[] = "\x00"; // 1-byte probe
     auto t0 = std::chrono::steady_clock::now();
-    send(s, probe, 1, 0);
+    int sent = ::send(s, probe, 1, 0);
+    bytesSent = (sent > 0) ? static_cast<DWORD>(sent) : 0;
 
     fd_set rfds;
     FD_ZERO(&rfds); FD_SET(s, &rfds);
@@ -110,9 +120,10 @@ ConnectStatus NetworkChecker::CheckUDP(const std::wstring& ip, int port, DWORD& 
         if (r >= 0)
         {
             auto t1 = std::chrono::steady_clock::now();
-            latMs   = static_cast<DWORD>(
+            latMs     = static_cast<DWORD>(
                 std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count());
-            result  = ConnectStatus::OK;
+            bytesRecv = static_cast<DWORD>(r);
+            result    = ConnectStatus::OK;
         }
         else
         {
@@ -151,8 +162,8 @@ void NetworkChecker::WorkerProc(std::vector<DestinationResult>* results,
                     pr.status = ConnectStatus::DISABLED;
                 else
                     pr.status = (passProto == Protocol::TCP)
-                        ? CheckTCP(dr.config.ip, pr.entry.port, pr.latencyMs)
-                        : CheckUDP(dr.config.ip, pr.entry.port, pr.latencyMs);
+                        ? CheckTCP(dr.config.ip, pr.entry.port, pr.latencyMs, pr.bytesSent, pr.bytesRecv)
+                        : CheckUDP(dr.config.ip, pr.entry.port, pr.latencyMs, pr.bytesSent, pr.bytesRecv);
 
                 if (onResult) onResult(di, pi);
             }

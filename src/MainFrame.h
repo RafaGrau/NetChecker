@@ -16,9 +16,10 @@ enum TbImg
     IMG_SAVE,       // icon_save.ico    – Guardar config
     IMG_RELOAD,
     IMG_CFGEDIT,    // icon_cfgedit.ico – Editor de configuración
-    IMG_VIEW_TABS,  // view_tabs.ico    – Cambiar a vista por pestañas
-    IMG_VIEW_LIST,  // view_list.ico    – Cambiar a vista en lista
-    IMG_INFO,       // icon_info.ico    – Acerca de / Info
+    IMG_VIEW_TABS,  // view_tabs.ico  – Cambiar a vista por pestañas
+    IMG_VIEW_LIST,  // view_list.ico  – Cambiar a vista en lista
+    IMG_HELP,       // help.ico       – Ayuda
+    IMG_INFO,       // info.ico       – Acerca de / Info
     IMG_EXIT,
     IMG_COUNT
 };
@@ -49,6 +50,7 @@ protected:
     void OnReloadCfg();
     void OnCfgWiz();
     void OnViewToggle();
+    void OnHelp();
     void OnInfo();
     void OnAutofit();
     void OnFileExit();
@@ -63,6 +65,7 @@ protected:
     afx_msg LRESULT OnNcResult  (WPARAM wParam, LPARAM lParam);
     afx_msg LRESULT OnNcComplete(WPARAM wParam, LPARAM lParam);
     afx_msg void    OnTabSelChange(NMHDR* pNMHDR, LRESULT* pResult);
+    afx_msg BOOL    OnToolTipText(UINT id, NMHDR* pNMHDR, LRESULT* pResult);
 
     DECLARE_MESSAGE_MAP()
 

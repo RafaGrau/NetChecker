@@ -16,11 +16,16 @@ public:
 
 protected:
     void DoDataExchange(CDataExchange* pDX) override;
+    BOOL PreTranslateMessage(MSG* pMsg) override;
     BOOL OnInitDialog() override;
     void OnOK() override;
 
+    afx_msg void OnBtnNewServer();
     afx_msg void OnBtnAddServer();
     afx_msg void OnBtnRemServer();
+    afx_msg void OnTabRClick(NMHDR* pNMHDR, LRESULT* pResult);
+    afx_msg void OnFormChanged();
+    afx_msg void OnIpChanged(NMHDR* pNMHDR, LRESULT* pResult);
     afx_msg void OnBtnImportCsv();
     afx_msg void OnBtnExportCsv();
     afx_msg void OnBtnAddPort();
@@ -37,6 +42,7 @@ private:
     AppConfig&                     m_cfg;
     std::vector<DestinationConfig> m_servers;   // working copy
     int                            m_curSrv{ -1 };
+    bool                           m_dirty { false }; // tracks unsaved form changes
 
     // Controls
     CEdit       m_edName;
@@ -52,7 +58,10 @@ private:
     int  m_sortCol { -1 };   // -1 = unsorted, 0 = Port, 1 = Protocol
     bool m_sortAsc { true };
 
+    CToolTipCtrl  m_tooltip;
+
     // ── helpers ───────────────────────────────────────────────────────────────
+    void BuildTabFor(int idx);
     void RefreshTabs();
     void SwitchToServer(int idx);
     void PopulateList(int srvIdx);

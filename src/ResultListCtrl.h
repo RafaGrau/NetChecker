@@ -16,7 +16,9 @@ enum ListCol
     COL_DESC    = 4,   // Descripción
     COL_STATUS  = 5,   // Estado
     COL_LATENCY = 6,   // Latencia ms
-    COL_COUNT   = 7
+    COL_TX      = 7,   // Bytes enviados
+    COL_RX      = 8,   // Bytes recibidos
+    COL_COUNT   = 9
 };
 
 // ──────────────────────────────────────────────────────────────────────────────

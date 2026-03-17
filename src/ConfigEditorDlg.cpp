@@ -6,8 +6,13 @@
 IMPLEMENT_DYNAMIC(CConfigEditorDlg, CDialogEx)
 
 BEGIN_MESSAGE_MAP(CConfigEditorDlg, CDialogEx)
-    ON_BN_CLICKED(IDC_CFG_BTN_ADD_SRV,  &CConfigEditorDlg::OnBtnAddServer)
-    ON_BN_CLICKED(IDC_CFG_BTN_REM_SRV,  &CConfigEditorDlg::OnBtnRemServer)
+    ON_BN_CLICKED(IDC_CFG_BTN_NEW_SRV,   &CConfigEditorDlg::OnBtnNewServer)
+    ON_BN_CLICKED(IDC_CFG_BTN_ADD_SRV,   &CConfigEditorDlg::OnBtnAddServer)
+    ON_BN_CLICKED(IDC_CFG_BTN_REM_SRV,   &CConfigEditorDlg::OnBtnRemServer)
+    ON_NOTIFY(NM_RCLICK, IDC_CFG_TAB,    &CConfigEditorDlg::OnTabRClick)
+    ON_EN_CHANGE(IDC_CFG_EDIT_NAME,       &CConfigEditorDlg::OnFormChanged)
+    ON_NOTIFY(IPN_FIELDCHANGED, IDC_CFG_EDIT_IP, &CConfigEditorDlg::OnIpChanged)
+    ON_CBN_SELCHANGE(IDC_CFG_COMBO_TYPE,  &CConfigEditorDlg::OnFormChanged)
     ON_BN_CLICKED(IDC_CFG_BTN_IMPORT_CSV,&CConfigEditorDlg::OnBtnImportCsv)
     ON_BN_CLICKED(IDC_CFG_BTN_EXPORT_CSV,&CConfigEditorDlg::OnBtnExportCsv)
     ON_BN_CLICKED(IDC_CFG_BTN_ADD_PORT, &CConfigEditorDlg::OnBtnAddPort)
@@ -51,6 +56,26 @@ BOOL CConfigEditorDlg::OnInitDialog()
     m_cbType.AddString(PortDB::TypeName(DestinationType::SCCM_Full));
     m_cbType.AddString(PortDB::TypeName(DestinationType::SCCM_DP));
     m_cbType.SetCurSel(0);
+
+    // Load icons into the two icon buttons at 32x32
+    auto loadIcon = [&](int ctrlId, UINT iconId) {
+        HICON hIco = static_cast<HICON>(
+            LoadImage(AfxGetInstanceHandle(),
+                MAKEINTRESOURCE(iconId), IMAGE_ICON, 32, 32, LR_DEFAULTCOLOR));
+        if (hIco)
+            SendDlgItemMessage(ctrlId, BM_SETIMAGE, IMAGE_ICON,
+                               reinterpret_cast<LPARAM>(hIco));
+    };
+    loadIcon(IDC_CFG_BTN_NEW_SRV, IDI_ICON_SRV_ADD);
+    loadIcon(IDC_CFG_BTN_ADD_SRV, IDI_ICON_SAVE2);
+
+    // Tooltips for icon buttons
+    m_tooltip.Create(this);
+    m_tooltip.SetDelayTime(TTDT_INITIAL, 600);
+    if (auto* p = GetDlgItem(IDC_CFG_BTN_NEW_SRV))
+        m_tooltip.AddTool(p, L"Nuevo servidor");
+    if (auto* p = GetDlgItem(IDC_CFG_BTN_ADD_SRV))
+        m_tooltip.AddTool(p, L"Guardar / Actualizar servidor");
 
     // Port-editor protocol combo
     m_cbProto.AddString(L"TCP");
@@ -113,6 +138,7 @@ void CConfigEditorDlg::SwitchToServer(int idx)
     m_curSrv = idx;
     m_sortCol = -1;
     m_sortAsc = true;
+    m_dirty   = false;
     // Clear header sort arrows
     if (m_list.GetSafeHwnd())
     {
@@ -143,20 +169,13 @@ void CConfigEditorDlg::SwitchToServer(int idx)
         };
         for (int t = 0; t < 4; ++t)
             if (kTypes[t] == srv.type) { m_cbType.SetCurSel(t); break; }
-
-        // Button changes to "Actualizar" when a server is selected
-        if (auto* p = GetDlgItem(IDC_CFG_BTN_ADD_SRV))
-            p->SetWindowText(L"Actualizar");
     }
     else
     {
         m_list.DeleteAllItems();
-        // No server selected – clear form and restore "Agregar" label
         m_edName.SetWindowText(L"");
         m_edIP.SendMessage(IPM_CLEARADDRESS, 0, 0);
         m_cbType.SetCurSel(0);
-        if (auto* p = GetDlgItem(IDC_CFG_BTN_ADD_SRV))
-            p->SetWindowText(L"Agregar");
     }
     // Clear port editor
     m_edPort.SetWindowText(L"");
@@ -218,6 +237,21 @@ bool CConfigEditorDlg::EditorToPortEntry(PortEntry& pe)
 }
 
 // ── Button handlers ────────────────────────────────────────────────────────────
+// ── "Nuevo" button – clears form for adding a new server ─────────────────────
+void CConfigEditorDlg::OnBtnNewServer()
+{
+    // Clear the form fields for entering a new server.
+    // Do NOT touch the grid – the currently selected tab stays visible.
+    m_curSrv = -1;
+    m_dirty  = false;
+    m_edName.SetWindowText(L"");
+    m_edIP.SendMessage(IPM_CLEARADDRESS, 0, 0);
+    m_cbType.SetCurSel(0);
+    UpdateButtonStates();
+    m_edName.SetFocus();
+}
+
+// ── "Guardar" button – add new OR update existing ────────────────────────────
 void CConfigEditorDlg::OnBtnAddServer()
 {
     CString name;
@@ -234,7 +268,7 @@ void CConfigEditorDlg::OnBtnAddServer()
     m_edIP.SendMessage(IPM_GETADDRESS, 0, (LPARAM)&ipVal);
     if (ipVal == 0)
     {
-        MessageBox(L"Introduzca una dirección IP válida.", L"Campo requerido", MB_ICONWARNING);
+        MessageBox(L"Introduzca una direcci\xf3n IP v\xe1lida.", L"Campo requerido", MB_ICONWARNING);
         m_edIP.SetFocus();
         return;
     }
@@ -256,7 +290,6 @@ void CConfigEditorDlg::OnBtnAddServer()
         srv.ip   = GetIP();
         srv.type = dt;
 
-        // Update tab label
         TCITEM ti{};
         ti.mask    = TCIF_TEXT;
         CString lbl(name);
@@ -264,8 +297,9 @@ void CConfigEditorDlg::OnBtnAddServer()
         m_tab.SetItem(m_curSrv, &ti);
         lbl.ReleaseBuffer();
 
-        // Redraw the port grid so it stays visible after the update
         PopulateList(m_curSrv);
+        m_dirty = false;
+        UpdateButtonStates();
         return;
     }
 
@@ -288,6 +322,7 @@ void CConfigEditorDlg::OnBtnAddServer()
     lbl.ReleaseBuffer();
 
     PositionList();
+    m_dirty = false;
     SwitchToServer(newIdx);
 }
 
@@ -312,8 +347,6 @@ void CConfigEditorDlg::OnBtnRemServer()
         m_edName.SetWindowText(L"");
         m_edIP.SendMessage(IPM_CLEARADDRESS, 0, 0);
         m_cbType.SetCurSel(0);
-        if (auto* p = GetDlgItem(IDC_CFG_BTN_ADD_SRV))
-            p->SetWindowText(L"Agregar");
         UpdateButtonStates();
     }
 }
@@ -493,10 +526,20 @@ void CConfigEditorDlg::UpdateButtonStates()
     bool hasSrv = (m_curSrv >= 0 && m_curSrv < (int)m_servers.size());
     bool hasSel = hasSrv && (m_list.GetNextItem(-1, LVNI_SELECTED) >= 0);
 
+    // Save button logic:
+    // - Existing server (hasSrv): enabled only when form has content AND m_dirty
+    // - New server mode (m_curSrv == -1): enabled when name + IP filled (ready to add)
+    CString name; m_edName.GetWindowText(name); name.Trim();
+    DWORD ipVal = 0;
+    m_edIP.SendMessage(IPM_GETADDRESS, 0, (LPARAM)&ipVal);
+    bool hasInput = !name.IsEmpty() && ipVal != 0;
+    bool saveEnabled = hasSrv ? (hasInput && m_dirty) : hasInput;
+
     auto enable = [this](int id, bool on) {
         if (auto* p = GetDlgItem(id)) p->EnableWindow(on);
     };
 
+    enable(IDC_CFG_BTN_ADD_SRV,  saveEnabled);
     enable(IDC_CFG_BTN_REM_SRV,  hasSrv);
     enable(IDC_CFG_EDIT_PORT,    hasSrv);
     enable(IDC_CFG_COMBO_PROTO,  hasSrv);
@@ -644,7 +687,72 @@ void CConfigEditorDlg::OnBtnImportCsv()
     MessageBox(msg, L"Importar CSV", MB_ICONINFORMATION);
 }
 
-// ── OK / Cancel ────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────────
+// PreTranslateMessage – relay messages to tooltip
+// ──────────────────────────────────────────────────────────────────────────────
+BOOL CConfigEditorDlg::PreTranslateMessage(MSG* pMsg)
+{
+    m_tooltip.RelayEvent(pMsg);
+    return CDialogEx::PreTranslateMessage(pMsg);
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────────
+// OnTabRClick – right-click on tab bar: context menu to delete server
+// ──────────────────────────────────────────────────────────────────────────────
+void CConfigEditorDlg::OnTabRClick(NMHDR* /*pNMHDR*/, LRESULT* pResult)
+{
+    TCHITTESTINFO ht{};
+    ::GetCursorPos(&ht.pt);
+    m_tab.ScreenToClient(&ht.pt);
+    int clickedTab = m_tab.HitTest(&ht);
+
+    if (clickedTab >= 0 && clickedTab < (int)m_servers.size())
+    {
+        SwitchToServer(clickedTab);
+
+        CMenu menu;
+        menu.CreatePopupMenu();
+        CString lbl;
+        lbl.Format(L"Eliminar servidor '%s'", m_servers[clickedTab].name.c_str());
+        menu.AppendMenu(MF_STRING, 1, lbl);
+
+        CPoint pt;
+        ::GetCursorPos(&pt);
+        int cmd = menu.TrackPopupMenu(
+            TPM_LEFTALIGN | TPM_RIGHTBUTTON | TPM_RETURNCMD,
+            pt.x, pt.y, this);
+
+        if (cmd == 1)
+        {
+            CString msg;
+            msg.Format(L"\xbfEliminar el servidor '%s'?", m_servers[clickedTab].name.c_str());
+            if (MessageBox(msg, L"Confirmar", MB_YESNO | MB_ICONQUESTION) == IDYES)
+                OnBtnRemServer();
+        }
+    }
+    *pResult = 0;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// OnFormChanged / OnIpChanged – mark dirty and refresh save button state
+// ──────────────────────────────────────────────────────────────────────────────
+void CConfigEditorDlg::OnFormChanged()
+{
+    m_dirty = true;
+    UpdateButtonStates();
+}
+
+void CConfigEditorDlg::OnIpChanged(NMHDR* /*pNMHDR*/, LRESULT* pResult)
+{
+    m_dirty = true;
+    UpdateButtonStates();
+    *pResult = 0;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// OnOK – commit working copy to config on Accept
+// ──────────────────────────────────────────────────────────────────────────────
 void CConfigEditorDlg::OnOK()
 {
     if (m_servers.empty())

@@ -42,7 +42,9 @@ bool HtmlExporter::Export(const wchar_t* path,
       << L"col.c-proto{width:90px;}\n"
       << L"col.c-desc{width:auto;}\n"
       << L"col.c-status{width:130px;}\n"
-      << L"col.c-lat{width:110px;}\n"
+      << L"col.c-lat{width:90px;}\n"
+      << L"col.c-tx{width:80px;}\n"
+      << L"col.c-rx{width:80px;}\n"
       << L"th{background:#1a3a5c;color:#fff;padding:5px 8px;text-align:left;font-weight:400;}\n"
       << L"td{padding:4px 8px;border-bottom:1px solid #ccc;}\n"
       << L"tr:nth-child(even)td{background:#eef1f6;}\n"
@@ -65,9 +67,10 @@ bool HtmlExporter::Export(const wchar_t* path,
           << PortDB::TypeName(dr.config.type) << L")</small></h2>\n"
           << L"<table>"
           << L"<colgroup><col class=\"c-port\"><col class=\"c-proto\"><col class=\"c-desc\">"
-          << L"<col class=\"c-status\"><col class=\"c-lat\"></colgroup>"
+          << L"<col class=\"c-status\"><col class=\"c-lat\"><col class=\"c-tx\"><col class=\"c-rx\"></colgroup>"
           << L"<tr><th>Puerto</th><th>Protocolo</th>"
-          << L"<th>Descripci\x00f3n</th><th>Estado</th><th>Latencia (ms)</th></tr>\n";
+          << L"<th>Descripci\x00f3n</th><th>Estado</th><th>Latencia (ms)</th>"
+          << L"<th>Tx (bytes)</th><th>Rx (bytes)</th></tr>\n";
 
         // TCP ports first, then UDP
         for (int pass = 0; pass < 2; ++pass)
@@ -92,6 +95,10 @@ bool HtmlExporter::Export(const wchar_t* path,
                   << L"</td><td class=\"" << cls << L"\">"
                   << StrUtil::StatusText(pr.status) << L"</td><td>"
                   << (pr.status == ConnectStatus::OK ? std::to_wstring(pr.latencyMs) : L"&mdash;")
+                  << L"</td><td>"
+                  << (pr.bytesSent > 0 ? std::to_wstring(pr.bytesSent) : L"&mdash;")
+                  << L"</td><td>"
+                  << (pr.bytesRecv > 0 ? std::to_wstring(pr.bytesRecv) : L"&mdash;")
                   << L"</td></tr>\n";
             }
         }

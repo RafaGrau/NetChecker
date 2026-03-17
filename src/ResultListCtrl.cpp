@@ -21,13 +21,15 @@ void CResultListCtrl::Initialise()
     EnableGroupView(TRUE);
 
     // Internal column order
-    InsertColumn(COL_CHECK,   L"✔",         LVCFMT_CENTER,  28);  // ✔ checkmark header
-    InsertColumn(COL_DEST,    L"IP Destino",    LVCFMT_LEFT,   120);
-    InsertColumn(COL_PORT,    L"Puerto",        LVCFMT_RIGHT,   52);
-    InsertColumn(COL_PROTO,   L"Protocolo",     LVCFMT_CENTER,  65);
-    InsertColumn(COL_DESC,    L"Descripción",LVCFMT_LEFT,   205);
-    InsertColumn(COL_STATUS,  L"Estado",        LVCFMT_CENTER,  68);
-    InsertColumn(COL_LATENCY, L"Latencia ms",   LVCFMT_RIGHT,   78);
+    InsertColumn(COL_CHECK,   L"✔",           LVCFMT_CENTER,  28);
+    InsertColumn(COL_DEST,    L"IP Destino",   LVCFMT_LEFT,   120);
+    InsertColumn(COL_PORT,    L"Puerto",       LVCFMT_RIGHT,   52);
+    InsertColumn(COL_PROTO,   L"Protocolo",    LVCFMT_CENTER,  65);
+    InsertColumn(COL_DESC,    L"Descripción",  LVCFMT_LEFT,   185);
+    InsertColumn(COL_STATUS,  L"Estado",       LVCFMT_CENTER,  68);
+    InsertColumn(COL_LATENCY, L"Latencia ms",  LVCFMT_RIGHT,   72);
+    InsertColumn(COL_TX,      L"Tx (bytes)",   LVCFMT_RIGHT,   70);
+    InsertColumn(COL_RX,      L"Rx (bytes)",   LVCFMT_RIGHT,   70);
 
     // Visual order:  Destino | Puerto | Activo(check) | Protocolo | Desc | Estado | Latencia
     int order[COL_COUNT] = { COL_DEST, COL_PORT, COL_CHECK,
@@ -99,6 +101,10 @@ void CResultListCtrl::PopulateResults(const std::vector<DestinationResult>& resu
                     (pr.status == ConnectStatus::OK)
                         ? std::to_wstring(pr.latencyMs).c_str()
                         : L"—");
+                SetItemText(flatIdx, COL_TX,
+                    pr.bytesSent > 0 ? std::to_wstring(pr.bytesSent).c_str() : L"—");
+                SetItemText(flatIdx, COL_RX,
+                    pr.bytesRecv > 0 ? std::to_wstring(pr.bytesRecv).c_str() : L"—");
                 ++flatIdx;
             }
         }
@@ -124,6 +130,10 @@ void CResultListCtrl::UpdateResult(int destIdx, int portIdx, const PortResult& p
                 (pr.status == ConnectStatus::OK)
                     ? std::to_wstring(pr.latencyMs).c_str()
                     : L"—");
+            SetItemText(i, COL_TX,
+                pr.bytesSent > 0 ? std::to_wstring(pr.bytesSent).c_str() : L"—");
+            SetItemText(i, COL_RX,
+                pr.bytesRecv > 0 ? std::to_wstring(pr.bytesRecv).c_str() : L"—");
             RedrawItems(i, i);
             break;
         }

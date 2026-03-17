@@ -12,6 +12,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
     ON_WM_DESTROY()
     ON_WM_SIZE()
     ON_NOTIFY(TCN_SELCHANGE, AFX_IDW_PANE_FIRST + 1, &CMainFrame::OnTabSelChange)
+    ON_NOTIFY_EX(TTN_NEEDTEXTW, 0, &CMainFrame::OnToolTipText)
+    ON_NOTIFY_EX(TTN_NEEDTEXTA, 0, &CMainFrame::OnToolTipText)
 
     // Toolbar button commands
     ON_COMMAND(IDC_BTN_RUN_STOP,    &CMainFrame::OnRunStop)
@@ -21,6 +23,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
     ON_COMMAND(IDC_BTN_AUTOFIT,     &CMainFrame::OnAutofit)
     ON_COMMAND(IDC_BTN_VIEW_TOGGLE, &CMainFrame::OnViewToggle)
     ON_COMMAND(IDC_BTN_CFG_WIZ,     &CMainFrame::OnCfgWiz)
+    ON_COMMAND(IDC_BTN_HELP,        &CMainFrame::OnHelp)
     ON_COMMAND(IDC_BTN_INFO,        &CMainFrame::OnInfo)
     ON_COMMAND(IDC_BTN_EXIT,        &CMainFrame::OnFileExit)
 
@@ -139,21 +142,21 @@ void CMainFrame::BuildToolbar()
 
     static TBBUTTON tbb[] =
     {
-        {IMG_RUN,     IDC_BTN_RUN_STOP,  TBSTATE_ENABLED, TBSTYLE_BUTTON, {}, 0, (INT_PTR)L"Comprobar"},
-        {0,           0,                 TBSTATE_ENABLED, TBSTYLE_SEP,    {}, 0, 0},
-        {IMG_HTML,    IDC_BTN_SAVE_HTML, TBSTATE_ENABLED, TBSTYLE_BUTTON, {}, 0, (INT_PTR)L"Guardar HTML"},
-        {0,           0,                 TBSTATE_ENABLED, TBSTYLE_SEP,    {}, 0, 0},
-        {IMG_SAVE,    IDC_BTN_SAVE_CFG,  TBSTATE_ENABLED, TBSTYLE_BUTTON, {}, 0, (INT_PTR)L"Guardar config"},
-        {IMG_RELOAD,  IDC_BTN_RELOAD_CFG,TBSTATE_ENABLED, TBSTYLE_BUTTON, {}, 0, (INT_PTR)L"Recargar config"},
-        {0,           0,                 TBSTATE_ENABLED, TBSTYLE_SEP,    {}, 0, 0},
-        {IMG_CFGEDIT, IDC_BTN_CFG_WIZ,    TBSTATE_ENABLED, TBSTYLE_BUTTON, {}, 0, (INT_PTR)L"Editor de configuraci\xf3n"},
-        {0,           0,                   TBSTATE_ENABLED, TBSTYLE_SEP,    {}, 0, 0},
+        {IMG_RUN,      IDC_BTN_RUN_STOP,   TBSTATE_ENABLED, TBSTYLE_BUTTON, {}, 0, (INT_PTR)L"Comprobar"},
+        {0,            0,                  TBSTATE_ENABLED, TBSTYLE_SEP,    {}, 0, 0},
+        {IMG_CFGEDIT,  IDC_BTN_CFG_WIZ,    TBSTATE_ENABLED, TBSTYLE_BUTTON, {}, 0, (INT_PTR)L"Editor de configuraci\xf3n"},
+        {IMG_RELOAD,   IDC_BTN_RELOAD_CFG, TBSTATE_ENABLED, TBSTYLE_BUTTON, {}, 0, (INT_PTR)L"Recargar configuraci\xf3n"},
+        {IMG_SAVE,     IDC_BTN_SAVE_CFG,   TBSTATE_ENABLED, TBSTYLE_BUTTON, {}, 0, (INT_PTR)L"Guardar configuraci\xf3n"},
+        {0,            0,                  TBSTATE_ENABLED, TBSTYLE_SEP,    {}, 0, 0},
+        {IMG_HTML,     IDC_BTN_SAVE_HTML,  TBSTATE_ENABLED, TBSTYLE_BUTTON, {}, 0, (INT_PTR)L"Guardar informe HTML"},
+        {0,            0,                  TBSTATE_ENABLED, TBSTYLE_SEP,    {}, 0, 0},
         {IMG_VIEW_TABS,IDC_BTN_VIEW_TOGGLE,TBSTATE_ENABLED, TBSTYLE_BUTTON, {}, 0, (INT_PTR)L"Vista por pesta\xf1""as"},
-        {0,           0,                   TBSTATE_ENABLED, TBSTYLE_SEP,    {}, 0, 0},
-        {IMG_EXIT,    IDC_BTN_EXIT,        TBSTATE_ENABLED, TBSTYLE_BUTTON, {}, 0, (INT_PTR)L"Salir"},
-        // stretch separator – width recalculated in OnSize to push INFO to the right edge
-        {0,           IDC_BTN_INFO_SEP,  TBSTATE_ENABLED, TBSTYLE_SEP,    {}, 0, 0},
-        {IMG_INFO,    IDC_BTN_INFO,      TBSTATE_ENABLED, TBSTYLE_BUTTON, {}, 0, (INT_PTR)L"Informaci\xf3n"},
+        {0,            0,                  TBSTATE_ENABLED, TBSTYLE_SEP,    {}, 0, 0},
+        {IMG_EXIT,     IDC_BTN_EXIT,       TBSTATE_ENABLED, TBSTYLE_BUTTON, {}, 0, (INT_PTR)L"Salir"},
+        // stretch separator – width recalculated in OnSize to push HELP+INFO to the right edge
+        {0,            IDC_BTN_INFO_SEP,   TBSTATE_ENABLED, TBSTYLE_SEP,    {}, 0, 0},
+        {IMG_HELP,     IDC_BTN_HELP,       TBSTATE_ENABLED, TBSTYLE_BUTTON, {}, 0, (INT_PTR)L"Ayuda"},
+        {IMG_INFO,     IDC_BTN_INFO,       TBSTATE_ENABLED, TBSTYLE_BUTTON, {}, 0, (INT_PTR)L"Informaci\xf3n"},
     };
 
     m_toolbar.GetToolBarCtrl().AddButtons(
@@ -285,6 +288,7 @@ void CMainFrame::BuildImageLists()
         IDI_ICON_CFGEDIT,   // IMG_CFGEDIT
         IDI_ICON_VIEWTABS,  // IMG_VIEW_TABS
         IDI_ICON_VIEWLIST,  // IMG_VIEW_LIST
+        IDI_ICON_HELP,      // IMG_HELP
         IDI_ICON_INFO,      // IMG_INFO
         IDI_ICON_EXIT,      // IMG_EXIT
     };
@@ -556,6 +560,26 @@ void CMainFrame::OnCfgWiz()
 
 void CMainFrame::OnFileExit() { SendMessage(WM_CLOSE); }
 
+void CMainFrame::OnHelp()
+{
+    // Open the HTML help file located next to the executable
+    wchar_t exePath[MAX_PATH] = {};
+    GetModuleFileNameW(nullptr, exePath, MAX_PATH);
+    // Replace filename with help file name
+    wchar_t* lastSlash = wcsrchr(exePath, L'\\');
+    if (lastSlash) *(lastSlash + 1) = L'\0';
+    std::wstring helpPath = exePath;
+    helpPath += L"NetChecker_Ayuda.html";
+
+    HINSTANCE result = ShellExecuteW(nullptr, L"open",
+        helpPath.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+
+    if (reinterpret_cast<INT_PTR>(result) <= 32)
+        MessageBox(L"No se encontró el archivo de ayuda.\n"
+                   L"Compruebe que NetChecker_Ayuda.html está en el mismo directorio que el ejecutable.",
+                   L"Ayuda", MB_ICONINFORMATION);
+}
+
 void CMainFrame::OnInfo()
 {
     CAboutDlg dlg;
@@ -645,7 +669,17 @@ void CMainFrame::OnSize(UINT nType, int cx, int cy)
         CRect rcInfo; tb.GetItemRect(btnInfo, &rcInfo);
         CRect rcSep;  tb.GetItemRect(btnSep,  &rcSep);
         CRect rcTb;   tb.GetClientRect(&rcTb);
-        int stretch = max(8, rcTb.Width() - rcSep.left - rcInfo.Width() - 4);
+        // Sum width of all buttons right of the separator (HELP + INFO)
+        int rightWidth = rcInfo.Width();
+        for (int i = 0; i < count; ++i) {
+            TBBUTTON tbb2{}; tb.GetButton(i, &tbb2);
+            if (tbb2.idCommand == IDC_BTN_HELP) {
+                CRect rc2; tb.GetItemRect(i, &rc2);
+                rightWidth += rc2.Width();
+                break;
+            }
+        }
+        int stretch = max(8, rcTb.Width() - rcSep.left - rightWidth - 4);
         TBBUTTONINFO tbi{}; tbi.cbSize = sizeof(tbi);
         tbi.dwMask = TBIF_SIZE; tbi.cx = static_cast<WORD>(stretch);
         tb.SetButtonInfo(IDC_BTN_INFO_SEP, &tbi);
@@ -663,7 +697,54 @@ void CMainFrame::OnDestroy()
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// LayoutContent – resize the active view (list or tab+lists) to fill client area
+// OnToolTipText – supply tooltip text for toolbar buttons
+// ──────────────────────────────────────────────────────────────────────────────
+BOOL CMainFrame::OnToolTipText(UINT /*id*/, NMHDR* pNMHDR, LRESULT* pResult)
+{
+    // Works for both ANSI and Unicode tooltip notifications
+    TOOLTIPTEXTA* pTTA = reinterpret_cast<TOOLTIPTEXTA*>(pNMHDR);
+    TOOLTIPTEXTW* pTTW = reinterpret_cast<TOOLTIPTEXTW*>(pNMHDR);
+
+    UINT_PTR nID = pNMHDR->idFrom;
+    if (pNMHDR->code == TTN_NEEDTEXTW)
+        pTTW->hinst = nullptr;
+    else
+        pTTA->hinst = nullptr;
+
+    // Map command IDs to tooltip strings
+    struct TipEntry { UINT id; const wchar_t* tip; };
+    static const TipEntry kTips[] =
+    {
+        { IDC_BTN_RUN_STOP,    L"Comprobar / Detener"          },
+        { IDC_BTN_CFG_WIZ,     L"Editor de configuraci\xf3n"   },
+        { IDC_BTN_RELOAD_CFG,  L"Recargar configuraci\xf3n"    },
+        { IDC_BTN_SAVE_CFG,    L"Guardar configuraci\xf3n"     },
+        { IDC_BTN_SAVE_HTML,   L"Guardar informe HTML"          },
+        { IDC_BTN_VIEW_TOGGLE, L"Cambiar vista"                 },
+        { IDC_BTN_EXIT,        L"Salir"                         },
+        { IDC_BTN_HELP,        L"Ayuda"                         },
+        { IDC_BTN_INFO,        L"Acerca de NetChecker"          },
+    };
+
+    for (const auto& e : kTips)
+    {
+        if (e.id == static_cast<UINT>(nID))
+        {
+            if (pNMHDR->code == TTN_NEEDTEXTW)
+                wcsncpy_s(pTTW->szText, e.tip, _TRUNCATE);
+            else
+            {
+                // Convert to narrow for ANSI notification
+                WideCharToMultiByte(CP_ACP, 0, e.tip, -1,
+                    pTTA->szText, sizeof(pTTA->szText), nullptr, nullptr);
+            }
+            *pResult = 0;
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 void CMainFrame::LayoutContent(int /*cx*/, int /*cy*/)
 {

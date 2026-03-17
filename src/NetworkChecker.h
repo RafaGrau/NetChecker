@@ -40,8 +40,8 @@ private:
     std::atomic<bool>  m_stopReq  { false };
 
     // Per-port check
-    static ConnectStatus CheckTCP(const std::wstring& ip, int port, DWORD& latMs);
-    static ConnectStatus CheckUDP(const std::wstring& ip, int port, DWORD& latMs);
+    static ConnectStatus CheckTCP(const std::wstring& ip, int port, DWORD& latMs, DWORD& bytesSent, DWORD& bytesRecv);
+    static ConnectStatus CheckUDP(const std::wstring& ip, int port, DWORD& latMs, DWORD& bytesSent, DWORD& bytesRecv);
 
     void WorkerProc(std::vector<DestinationResult>* results,
                     ResultCb onResult, CompleteCb onComplete);
