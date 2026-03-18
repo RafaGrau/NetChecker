@@ -42,7 +42,8 @@ private:
     AppConfig&                     m_cfg;
     std::vector<DestinationConfig> m_servers;   // working copy
     int                            m_curSrv{ -1 };
-    bool                           m_dirty { false }; // tracks unsaved form changes
+    bool                           m_dirty       { false };
+    bool                           m_inhibitDirty{ false }; // suppress dirty during programmatic fills
 
     // Controls
     CEdit       m_edName;
@@ -61,7 +62,7 @@ private:
     CToolTipCtrl  m_tooltip;
 
     // ── helpers ───────────────────────────────────────────────────────────────
-    void BuildTabFor(int idx);
+    // ── helpers ───────────────────────────────────────────────────────────────
     void RefreshTabs();
     void SwitchToServer(int idx);
     void PopulateList(int srvIdx);

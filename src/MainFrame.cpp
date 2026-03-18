@@ -562,22 +562,26 @@ void CMainFrame::OnFileExit() { SendMessage(WM_CLOSE); }
 
 void CMainFrame::OnHelp()
 {
-    // Open the HTML help file located next to the executable
     wchar_t exePath[MAX_PATH] = {};
     GetModuleFileNameW(nullptr, exePath, MAX_PATH);
-    // Replace filename with help file name
     wchar_t* lastSlash = wcsrchr(exePath, L'\\');
     if (lastSlash) *(lastSlash + 1) = L'\0';
     std::wstring helpPath = exePath;
-    helpPath += L"NetChecker_Ayuda.html";
+    helpPath += L"NetChecker.chm";
 
-    HINSTANCE result = ShellExecuteW(nullptr, L"open",
-        helpPath.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
-
-    if (reinterpret_cast<INT_PTR>(result) <= 32)
-        MessageBox(L"No se encontró el archivo de ayuda.\n"
-                   L"Compruebe que NetChecker_Ayuda.html está en el mismo directorio que el ejecutable.",
-                   L"Ayuda", MB_ICONINFORMATION);
+    // HtmlHelp opens the CHM; fall back to ShellExecute if HtmlHelp unavailable
+    HWND hw = ::HtmlHelp(GetSafeHwnd(), helpPath.c_str(), HH_DISPLAY_TOC, 0);
+    if (!hw)
+    {
+        // HtmlHelp not available – try ShellExecute
+        HINSTANCE r = ShellExecuteW(nullptr, L"open",
+            helpPath.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+        if (reinterpret_cast<INT_PTR>(r) <= 32)
+            MessageBox(L"No se encontró NetChecker.chm.\n"
+                       L"Compílelo con HTML Help Workshop (hhc.exe NetChecker.hhp)\n"
+                       L"y colóquelo junto al ejecutable.",
+                       L"Ayuda", MB_ICONINFORMATION);
+    }
 }
 
 void CMainFrame::OnInfo()

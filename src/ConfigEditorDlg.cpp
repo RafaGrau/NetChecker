@@ -50,26 +50,24 @@ BOOL CConfigEditorDlg::OnInitDialog()
 {
     CDialogEx::OnInitDialog();
 
-    // Server type combo
+    // ── Server type combo ─────────────────────────────────────────────────────
     m_cbType.AddString(PortDB::TypeName(DestinationType::DC));
     m_cbType.AddString(PortDB::TypeName(DestinationType::PrintServer));
     m_cbType.AddString(PortDB::TypeName(DestinationType::SCCM_Full));
     m_cbType.AddString(PortDB::TypeName(DestinationType::SCCM_DP));
     m_cbType.SetCurSel(0);
 
-    // Load icons into the two icon buttons at 32x32
-    auto loadIcon = [&](int ctrlId, UINT iconId) {
-        HICON hIco = static_cast<HICON>(
-            LoadImage(AfxGetInstanceHandle(),
-                MAKEINTRESOURCE(iconId), IMAGE_ICON, 32, 32, LR_DEFAULTCOLOR));
-        if (hIco)
-            SendDlgItemMessage(ctrlId, BM_SETIMAGE, IMAGE_ICON,
-                               reinterpret_cast<LPARAM>(hIco));
+    // ── Icon buttons ──────────────────────────────────────────────────────────
+    auto setIcon = [&](int ctrlId, UINT iconId) {
+        HICON h = static_cast<HICON>(LoadImage(AfxGetInstanceHandle(),
+            MAKEINTRESOURCE(iconId), IMAGE_ICON, 24, 24, LR_DEFAULTCOLOR));
+        if (h) SendDlgItemMessage(ctrlId, BM_SETIMAGE, IMAGE_ICON,
+                                  reinterpret_cast<LPARAM>(h));
     };
-    loadIcon(IDC_CFG_BTN_NEW_SRV, IDI_ICON_SRV_ADD);
-    loadIcon(IDC_CFG_BTN_ADD_SRV, IDI_ICON_SAVE2);
+    setIcon(IDC_CFG_BTN_NEW_SRV, IDI_ICON_SRV_ADD);
+    setIcon(IDC_CFG_BTN_ADD_SRV, IDI_ICON_SAVE2);
 
-    // Tooltips for icon buttons
+    // ── Tooltips ──────────────────────────────────────────────────────────────
     m_tooltip.Create(this);
     m_tooltip.SetDelayTime(TTDT_INITIAL, 600);
     if (auto* p = GetDlgItem(IDC_CFG_BTN_NEW_SRV))
@@ -77,18 +75,18 @@ BOOL CConfigEditorDlg::OnInitDialog()
     if (auto* p = GetDlgItem(IDC_CFG_BTN_ADD_SRV))
         m_tooltip.AddTool(p, L"Guardar / Actualizar servidor");
 
-    // Port-editor protocol combo
+    // ── Port-editor combos ────────────────────────────────────────────────────
     m_cbProto.AddString(L"TCP");
     m_cbProto.AddString(L"UDP");
     m_cbProto.SetCurSel(0);
 
-    // List columns
+    // ── Port list columns ─────────────────────────────────────────────────────
     m_list.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES | LVS_EX_HEADERDRAGDROP);
-    m_list.InsertColumn(0, L"Puerto",       LVCFMT_RIGHT, 60);
-    m_list.InsertColumn(1, L"Protocolo",    LVCFMT_LEFT,  75);
+    m_list.InsertColumn(0, L"Puerto",         LVCFMT_RIGHT, 60);
+    m_list.InsertColumn(1, L"Protocolo",      LVCFMT_LEFT,  75);
     m_list.InsertColumn(2, L"Descripci\xf3n", LVCFMT_LEFT, 330);
 
-    // Build tabs from existing servers in the working copy
+    // ── Load existing servers (m_dirty reset by SwitchToServer → save disabled) ─
     RefreshTabs();
     if (!m_servers.empty())
         SwitchToServer(0);
@@ -112,6 +110,7 @@ std::wstring CConfigEditorDlg::GetIP() const
 
 void CConfigEditorDlg::SetIP(const std::wstring& ip)
 {
+    if (ip.empty()) { m_edIP.SendMessage(IPM_CLEARADDRESS, 0, 0); return; }
     unsigned a = 0, b = 0, c = 0, d = 0;
     if (swscanf_s(ip.c_str(), L"%u.%u.%u.%u", &a, &b, &c, &d) == 4)
         m_edIP.SendMessage(IPM_SETADDRESS, 0, MAKEIPADDRESS(a, b, c, d));
@@ -139,6 +138,8 @@ void CConfigEditorDlg::SwitchToServer(int idx)
     m_sortCol = -1;
     m_sortAsc = true;
     m_dirty   = false;
+    m_inhibitDirty = true;   // suppress EN_CHANGE / IPN_FIELDCHANGED during fills
+
     // Clear header sort arrows
     if (m_list.GetSafeHwnd())
     {
@@ -157,7 +158,6 @@ void CConfigEditorDlg::SwitchToServer(int idx)
         m_tab.SetCurSel(idx);
         PopulateList(idx);
 
-        // Fill form fields with selected server's data
         const auto& srv = m_servers[idx];
         m_edName.SetWindowText(srv.name.c_str());
         SetIP(srv.ip);
@@ -177,10 +177,10 @@ void CConfigEditorDlg::SwitchToServer(int idx)
         m_edIP.SendMessage(IPM_CLEARADDRESS, 0, 0);
         m_cbType.SetCurSel(0);
     }
-    // Clear port editor
     m_edPort.SetWindowText(L"");
     m_edDesc.SetWindowText(L"");
     m_cbProto.SetCurSel(0);
+    m_inhibitDirty = false;  // re-enable dirty tracking
     UpdateButtonStates();
 }
 
@@ -725,10 +725,22 @@ void CConfigEditorDlg::OnTabRClick(NMHDR* /*pNMHDR*/, LRESULT* pResult)
 
         if (cmd == 1)
         {
-            CString msg;
-            msg.Format(L"\xbfEliminar el servidor '%s'?", m_servers[clickedTab].name.c_str());
-            if (MessageBox(msg, L"Confirmar", MB_YESNO | MB_ICONQUESTION) == IDYES)
-                OnBtnRemServer();
+            // Delete directly — no second confirmation (menu item IS the confirmation)
+            m_servers.erase(m_servers.begin() + m_curSrv);
+            m_tab.DeleteItem(m_curSrv);
+            int newSel = min(m_curSrv, (int)m_servers.size() - 1);
+            m_curSrv = -1;
+            if (newSel >= 0)
+                SwitchToServer(newSel);
+            else
+            {
+                m_list.DeleteAllItems();
+                m_edName.SetWindowText(L"");
+                m_edIP.SendMessage(IPM_CLEARADDRESS, 0, 0);
+                m_cbType.SetCurSel(0);
+                m_dirty = false;
+                UpdateButtonStates();
+            }
         }
     }
     *pResult = 0;
@@ -739,14 +751,14 @@ void CConfigEditorDlg::OnTabRClick(NMHDR* /*pNMHDR*/, LRESULT* pResult)
 // ──────────────────────────────────────────────────────────────────────────────
 void CConfigEditorDlg::OnFormChanged()
 {
+    if (m_inhibitDirty) return;
     m_dirty = true;
     UpdateButtonStates();
 }
 
 void CConfigEditorDlg::OnIpChanged(NMHDR* /*pNMHDR*/, LRESULT* pResult)
 {
-    m_dirty = true;
-    UpdateButtonStates();
+    if (!m_inhibitDirty) { m_dirty = true; UpdateButtonStates(); }
     *pResult = 0;
 }
 

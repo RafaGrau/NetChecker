@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="ISO-8859-1"><title>Editor de configuraci&oacute;n</title>
+<style>
+body { font-family: "Segoe UI", Tahoma, sans-serif; font-size: 14px;
+       color: #1e2a38; background: #f4f7fb; margin: 0; padding: 0; }
+.page { max-width: 820px; margin: 0 auto; padding: 24px 32px 40px; }
+h1 { font-size: 22px; font-weight: 600; color: #1a3a5c;
+     border-bottom: 2px solid #d0dce8; padding-bottom: 8px; margin-bottom: 20px; }
+h2 { font-size: 16px; font-weight: 600; color: #2a5080; margin: 24px 0 10px; }
+p  { margin: 0 0 10px; line-height: 1.6; }
+ul { padding-left: 20px; margin: 0 0 12px; }
+li { margin-bottom: 5px; line-height: 1.6; }
+.tip { background: #e8f4fd; border-left: 4px solid #4a9fd4;
+       padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+.tip b { color: #1a3a5c; }
+table { border-collapse: collapse; width: 100%; margin-bottom: 14px; font-size: 13px; }
+th { background: #1a3a5c; color: #fff; padding: 6px 10px; text-align: left; font-weight: 400; }
+td { padding: 6px 10px; border-bottom: 1px solid #dde3ea; }
+tr:nth-child(even) td { background: #eef2f8; }
+.ic { display: inline-flex; align-items: center; white-space: nowrap; }
+.st { display:inline-block; padding:2px 8px; border-radius:10px;
+      font-size:12px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
+.ok     { background:#d4f0db; color:#1a7a3a; }
+.fail   { background:#fde0dd; color:#c0200e; }
+.noresp { background:#dde4f8; color:#3a4aaa; }
+.dis    { background:#e8edf2; color:#778899; }
+pre { background:#1e2a38; color:#b8d4ec; border-radius:6px;
+      padding:12px 16px; font-family:Consolas,monospace; font-size:12px;
+      overflow-x:auto; margin:10px 0; }
+</style></head>
+<body><div class="page">
+<h1>Editor de configuraci&oacute;n</h1>
+
+<h2>Barra de acciones</h2>
+<p>La parte superior del editor contiene:</p>
+<ul>
+  <li><img src="data:image/png;base64,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" width="20" height="20" alt="Nuevo servidor" style="vertical-align:middle;margin-right:4px"> <b>Nuevo servidor</b> &mdash; limpia el formulario para introducir un servidor nuevo.</li>
+  <li><b>Nombre</b> &mdash; texto identificativo del servidor.</li>
+  <li><b>IP</b> &mdash; direcci&oacute;n IP destino (control con m&aacute;scara xxx.xxx.xxx.xxx).</li>
+  <li><b>Tipo</b> &mdash; tipo de servidor (DC, PrintServer, SCCM, SCCM DP).</li>
+  <li><img src="data:image/png;base64,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" width="20" height="20" alt="Guardar" style="vertical-align:middle;margin-right:4px"> <b>Guardar / Actualizar</b> &mdash; desactivado hasta detectar cambios.
+      Si hay pesta&ntilde;a seleccionada, actualiza ese servidor; si no, crea uno nuevo.</li>
+</ul>
+
+<h2>Pesta&ntilde;as de servidor</h2>
+<p>Cada servidor tiene su propia pesta&ntilde;a con la cuadr&iacute;cula de puertos.
+<b>Clic derecho</b> sobre una pesta&ntilde;a muestra la opci&oacute;n para eliminar ese servidor.</p>
+
+<h2>Cuadr&iacute;cula de puertos</h2>
+<ul>
+  <li><b>Agregar puerto</b> &mdash; introduzca n&uacute;mero, protocolo y descripci&oacute;n en la parte inferior.</li>
+  <li><b>Actualizar</b> &mdash; modifique una fila seleccionada.</li>
+  <li><b>Eliminar puerto</b> &mdash; borra la fila seleccionada.</li>
+  <li>Clic en cabecera <b>Puerto</b> o <b>Protocolo</b> para ordenar &#x25b2;/&#x25bc;.</li>
+</ul>
+<div class="tip"><b>Descripci&oacute;n autom&aacute;tica:</b> Al salir del campo Puerto, la descripci&oacute;n
+se rellena autom&aacute;ticamente si el puerto es conocido (DNS, LDAP, SMB, RDP, etc.).</div>
+
+<h2>Importar / Exportar CSV</h2>
+<p>Formato: <code>hostname,ip,type,puerto/proto,...</code></p>
+<pre>hostname,ip,type,ports (port/proto)
+DC01,10.0.0.1,DC,88/TCP,88/UDP,389/TCP,445/TCP
+SRV-PRINT,10.0.0.5,PrintServer,80/TCP,443/TCP,9100/TCP</pre>
+<p>Tipos v&aacute;lidos: <code>DC</code> &middot; <code>PrintServer</code> &middot; <code>SCCM</code> &middot; <code>SCCM_DP</code></p>
+
+</div></body></html>

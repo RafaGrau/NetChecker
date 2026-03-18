@@ -56,6 +56,10 @@
 #define IDC_CFG_BTN_IMPORT_CSV  614
 #define IDC_CFG_BTN_EXPORT_CSV  615
 #define IDC_CFG_BTN_NEW_SRV     616   // always creates new server
+#define IDC_CFG_TOOLBAR_SEP     618   // visual separator below toolbar strip
+#define IDC_CFG_LBL_NAME        619
+#define IDC_CFG_LBL_IP          620
+#define IDC_CFG_LBL_TYPE        621
 
 
 

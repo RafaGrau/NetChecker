@@ -1,0 +1,13 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<HTML><HEAD></HEAD><BODY>
+<UL>
+  <LI><OBJECT type="text/sitemap"><param name="Name" value="Introducción"><param name="Local" value="intro.htm"></OBJECT>
+  <LI><OBJECT type="text/sitemap"><param name="Name" value="Toolbar"><param name="Local" value="toolbar.htm"></OBJECT>
+  <LI><OBJECT type="text/sitemap"><param name="Name" value="Configuración"><param name="Local" value="config.htm"></OBJECT>
+  <LI><OBJECT type="text/sitemap"><param name="Name" value="CSV"><param name="Local" value="config.htm"></OBJECT>
+  <LI><OBJECT type="text/sitemap"><param name="Name" value="Comprobación"><param name="Local" value="test.htm"></OBJECT>
+  <LI><OBJECT type="text/sitemap"><param name="Name" value="Estados"><param name="Local" value="estados.htm"></OBJECT>
+  <LI><OBJECT type="text/sitemap"><param name="Name" value="HTML informe"><param name="Local" value="informe.htm"></OBJECT>
+  <LI><OBJECT type="text/sitemap"><param name="Name" value="XML configuración"><param name="Local" value="xmlfmt.htm"></OBJECT>
+</UL>
+</BODY></HTML>

@@ -12,6 +12,7 @@
 // NOTE: _AFXDLL is defined in the project preprocessor settings (vcxproj),
 //       NOT here, to avoid C4005 macro-redefinition warnings.
 #include <afxwin.h>           // Core MFC + Windows
+#include <htmlhelp.h>
 #include <afxext.h>           // MFC Extensions (CToolBar, CStatusBar, …)
 #include <afxcmn.h>           // Common Controls (CListCtrl, CProgressCtrl, …)
 #include <afxdlgs.h>          // Common dialogs (CFileDialog, …)
