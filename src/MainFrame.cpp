@@ -60,14 +60,31 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpcs)
 
     // ── Status bar ────────────────────────────────────────────────────────────
     // Pane 0: status text (stretchy)
-    // Pane 1: progress bar (fixed 160 px)
+    // Pane 1: progress bar (fixed 200 px)
     // Pane 2: source IP    (fixed 160 px)
     static UINT indicators[] = { ID_SEPARATOR, ID_SEPARATOR, ID_SEPARATOR };
     m_statusBar.Create(this);
     m_statusBar.SetIndicators(indicators, 3);
     m_statusBar.SetPaneInfo(0, ID_SEPARATOR, SBPS_STRETCH, 0);
-    m_statusBar.SetPaneInfo(1, ID_SEPARATOR, SBPS_NORMAL,  160);
+    m_statusBar.SetPaneInfo(1, ID_SEPARATOR, SBPS_NORMAL,  200);
     m_statusBar.SetPaneInfo(2, ID_SEPARATOR, SBPS_NORMAL,  160);
+
+    // Taller status bar with a slightly larger font (10pt Segoe UI)
+    m_sbFont.CreateFont(
+        -14,                    // height (negative = character height, ~10.5pt at 96dpi)
+        0, 0, 0, FW_NORMAL,
+        FALSE, FALSE, FALSE,
+        DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+        DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS,
+        L"Segoe UI");
+    m_statusBar.SetFont(&m_sbFont);
+
+    // Force minimum height: get current size rect and expand
+    CRect rcSb;
+    m_statusBar.GetWindowRect(&rcSb);
+    int newH = max(rcSb.Height(), 26);  // at least 26px tall
+    m_statusBar.SetWindowPos(nullptr, 0, 0, rcSb.Width(), newH,
+                             SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
 
     // ── Toolbar ───────────────────────────────────────────────────────────────
     BuildToolbar();
@@ -109,9 +126,11 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpcs)
         ApplyBatchToggle(destIdx, proto, enable);
     });
 
-    // ── Progress bar (hidden in statusbar area) ───────────────────────────────
-    CRect rcPane; m_statusBar.GetItemRect(1, &rcPane);
-    m_progress.Create(WS_CHILD | PBS_SMOOTH, rcPane, &m_statusBar, 1);
+    // ── Progress bar (inside pane 1 of the status bar) ────────────────────────
+    CRect rcPane;
+    m_statusBar.GetItemRect(1, &rcPane);
+    // GetItemRect returns client coords of the status bar — use directly
+    m_progress.Create(WS_CHILD | PBS_SMOOTH, rcPane, &m_statusBar, 100);
     m_progress.SetRange(0, 100);
     m_progress.ShowWindow(SW_HIDE);
 
@@ -990,8 +1009,8 @@ void CMainFrame::SetSourceIPPane(const std::wstring& ip)
 void CMainFrame::SetProgress(int cur, int total)
 {
     if (total <= 0) { m_progress.ShowWindow(SW_HIDE); return; }
-    CRect rc; m_statusBar.GetItemRect(1, &rc);
-    m_statusBar.ScreenToClient(&rc);
+    CRect rc;
+    m_statusBar.GetItemRect(1, &rc);  // already in status bar client coords
     m_progress.MoveWindow(rc);
     m_progress.ShowWindow(SW_SHOW);
     m_progress.SetRange(0, total);

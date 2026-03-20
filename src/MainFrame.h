@@ -73,6 +73,7 @@ private:
     // ── Controls ─────────────────────────────────────────────────────────────
     CToolBar        m_toolbar;
     CStatusBar      m_statusBar;
+    CFont           m_sbFont;          // custom font for status bar
     CProgressCtrl   m_progress;
     CResultListCtrl m_listCtrl;
     CTabCtrl        m_tabCtrl;          // tab bar for per-server view
