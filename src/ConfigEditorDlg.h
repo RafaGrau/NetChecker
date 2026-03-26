@@ -3,9 +3,40 @@
 #include "resource.h"
 
 // ──────────────────────────────────────────────────────────────────────────────
+// CPortEditorDlg
+// Modal dialog for adding or editing a single PortEntry.
+// Set m_portNum/m_protoSel/m_desc before DoModal() when editing;
+// read them back after IDOK.
+// ──────────────────────────────────────────────────────────────────────────────
+class CPortEditorDlg : public CDialogEx
+{
+    DECLARE_DYNAMIC(CPortEditorDlg)
+public:
+    explicit CPortEditorDlg(bool isNew, CWnd* pParent = nullptr);
+    enum { IDD = IDD_PORT_EDITOR };
+
+    int     m_portNum  { 0 };   // port 1-65535
+    int     m_protoSel { 0 };   // 0=TCP, 1=UDP
+    CString m_desc;
+
+protected:
+    void DoDataExchange(CDataExchange* pDX) override;
+    BOOL OnInitDialog() override;
+    void OnOK() override;
+    afx_msg void OnPortKillFocus();
+    DECLARE_MESSAGE_MAP()
+
+private:
+    bool      m_isNew;
+    CEdit     m_edPort;
+    CComboBox m_cbProto;
+    CEdit     m_edDesc;
+};
+
+// ──────────────────────────────────────────────────────────────────────────────
 // CConfigEditorDlg
-// Full-featured configuration editor: add/remove servers, edit their port lists.
-// Pass an AppConfig by reference; changes are written back only on IDOK.
+// Configuration editor: servers (tab per server) + port list per server.
+// Toolbar replaces all old push-buttons.  Port add/edit use CPortEditorDlg.
 // ──────────────────────────────────────────────────────────────────────────────
 class CConfigEditorDlg : public CDialogEx
 {
@@ -20,57 +51,64 @@ protected:
     BOOL OnInitDialog() override;
     void OnOK() override;
 
+    // Server operations (invoked from toolbar)
     afx_msg void OnBtnNewServer();
     afx_msg void OnBtnAddServer();
     afx_msg void OnBtnRemServer();
-    afx_msg void OnTabRClick(NMHDR* pNMHDR, LRESULT* pResult);
-    afx_msg void OnFormChanged();
-    afx_msg void OnIpChanged(NMHDR* pNMHDR, LRESULT* pResult);
     afx_msg void OnBtnImportCsv();
     afx_msg void OnBtnExportCsv();
-    afx_msg void OnBtnAddPort();
-    afx_msg void OnBtnUpdPort();
+
+    // Port list operations
     afx_msg void OnBtnDelPort();
-    afx_msg void OnPortEditKillFocus();
-    afx_msg void OnTabSelChange  (NMHDR* pNMHDR, LRESULT* pResult);
-    afx_msg void OnListItemChange(NMHDR* pNMHDR, LRESULT* pResult);
+    afx_msg void OnTbPortAdd();
+    afx_msg void OnTbPortEdit();
+
+    // Notifications
+    afx_msg void OnTabRClick    (NMHDR* pNMHDR, LRESULT* pResult);
+    afx_msg void OnListRClick   (NMHDR* pNMHDR, LRESULT* pResult);
+    afx_msg void OnFormChanged  ();
+    afx_msg void OnIpChanged    (NMHDR* pNMHDR, LRESULT* pResult);
+    afx_msg void OnTabSelChange (NMHDR* pNMHDR, LRESULT* pResult);
+    afx_msg void OnListItemChange (NMHDR* pNMHDR, LRESULT* pResult);
     afx_msg void OnListColumnClick(NMHDR* pNMHDR, LRESULT* pResult);
+    afx_msg void OnTbGetInfoTip (NMHDR* pNMHDR, LRESULT* pResult);
 
     DECLARE_MESSAGE_MAP()
 
 private:
     AppConfig&                     m_cfg;
-    std::vector<DestinationConfig> m_servers;   // working copy
-    int                            m_curSrv{ -1 };
+    std::vector<DestinationConfig> m_servers;
+    int                            m_curSrv      { -1 };
     bool                           m_dirty       { false };
-    bool                           m_inhibitDirty{ false }; // suppress dirty during programmatic fills
+    bool                           m_inhibitDirty{ false };
 
     // Controls
-    CEdit       m_edName;
-    CWnd        m_edIP;            // SysIPAddress32
-    CComboBox   m_cbType;
-    CTabCtrl    m_tab;
-    CListCtrl   m_list;
-    CEdit       m_edPort;
-    CComboBox   m_cbProto;
-    CEdit       m_edDesc;
+    CEdit        m_edName;
+    CWnd         m_edIP;
+    CComboBox    m_cbType;
+    CTabCtrl     m_tab;
+    CListCtrl    m_list;
+    CComboBox    m_cbTimeout;
 
-    // ── sort state ────────────────────────────────────────────────────────────
-    int  m_sortCol { -1 };   // -1 = unsorted, 0 = Port, 1 = Protocol
-    bool m_sortAsc { true };
+    // Toolbar
+    CToolBarCtrl m_toolbar;
+    CImageList   m_tbImgList;
 
-    CToolTipCtrl  m_tooltip;
+    // Sort state
+    int  m_sortCol{ -1 };
+    bool m_sortAsc{ true };
 
-    // ── helpers ───────────────────────────────────────────────────────────────
-    // ── helpers ───────────────────────────────────────────────────────────────
+    CToolTipCtrl m_tooltip;
+
+    // Helpers
+    void CreateToolbar();
+    void RepositionFormRow();
+    bool EditPortDlg(PortEntry& pe, bool isNew);
     void RefreshTabs();
     void SwitchToServer(int idx);
     void PopulateList(int srvIdx);
-    void ListRowToEditor(int row);
-    bool EditorToPortEntry(PortEntry& pe);
     void UpdateButtonStates();
     void PositionList();
-
     std::wstring GetIP() const;
     void         SetIP(const std::wstring& ip);
 };

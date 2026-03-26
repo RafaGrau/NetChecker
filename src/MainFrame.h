@@ -86,11 +86,12 @@ private:
     std::vector<DestinationResult> m_results;
     NetworkChecker                 m_checker;
     ConfigManager                  m_cfgMgr;
-    std::wstring                   m_sourceIP;  // detected at runtime, not persisted
+    std::wstring                   m_sourceIP;
     bool                           m_cfgDirty   { false };
     bool                           m_cfgExists  { false };
     bool                           m_hasResults { false };
-    bool                           m_tabMode    { false }; // false=list, true=tabs
+    bool                           m_tabMode    { false };
+    int                            m_timeoutMs  { 1000 };  // port check timeout
 
     // ── Helpers ───────────────────────────────────────────────────────────────
     void BuildToolbar();
@@ -111,6 +112,7 @@ private:
     void SetProgress(int cur, int total);
     void SetStatus(const wchar_t* text);
     void SetSourceIPPane(const std::wstring& ip);
+    void SetTimeoutPane();
     void SyncToolbarRunStop(bool running);
 
     void ApplyBatchToggle(int destIdx, Protocol const* proto, bool enable);

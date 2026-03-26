@@ -11,7 +11,7 @@
 // TCP connect with 3-second timeout (non-blocking socket + select)
 // ──────────────────────────────────────────────────────────────────────────────
 ConnectStatus NetworkChecker::CheckTCP(const std::wstring& ip, int port, DWORD& latMs,
-                                       DWORD& bytesSent, DWORD& bytesRecv)
+                                       DWORD& bytesSent, DWORD& bytesRecv, int timeoutMs)
 {
     latMs = 0; bytesSent = 0; bytesRecv = 0;
 
@@ -38,7 +38,7 @@ ConnectStatus NetworkChecker::CheckTCP(const std::wstring& ip, int port, DWORD& 
     FD_ZERO(&wfds); FD_SET(s, &wfds);
     FD_ZERO(&efds); FD_SET(s, &efds);
 
-    timeval tv { 3, 0 }; // 3 second timeout
+    timeval tv { timeoutMs / 1000, (timeoutMs % 1000) * 1000 };
     int sel = select(0, nullptr, &wfds, &efds, &tv);
 
     ConnectStatus result = ConnectStatus::FAILED;
@@ -53,13 +53,28 @@ ConnectStatus NetworkChecker::CheckTCP(const std::wstring& ip, int port, DWORD& 
             latMs  = static_cast<DWORD>(
                 std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count());
             result = ConnectStatus::OK;
-            // TCP: SYN is ~40 bytes; send a minimal HTTP HEAD to get recv data
-            const char probe[] = "HEAD / HTTP/1.0\r\n\r\n";
-            int sent = ::send(s, probe, static_cast<int>(sizeof(probe) - 1), 0);
-            bytesSent = (sent > 0) ? static_cast<DWORD>(sent) : 40; // fallback: SYN size
-            char buf[512] = {};
-            int r = ::recv(s, buf, sizeof(buf) - 1, 0);
-            bytesRecv = (r > 0) ? static_cast<DWORD>(r) : 0;
+
+            // TCP handshake itself exchanges ~60-80 bytes (SYN+ACK).
+            // Count those as sent regardless of the probe result.
+            bytesSent = 60;
+
+            // Send a minimal probe and wait up to 500ms for a response.
+            // Many services (LDAP, SMB, RDP…) send a banner or greeting
+            // on connect; others are silent until the client speaks.
+            const char probe[] = "\x00"; // 1 null byte — harmless to any protocol
+            int sent = ::send(s, probe, 1, 0);
+            if (sent > 0) bytesSent += static_cast<DWORD>(sent);
+
+            // Wait briefly for any response
+            fd_set rfds2;
+            FD_ZERO(&rfds2); FD_SET(s, &rfds2);
+            timeval tvRecv { 0, 500000 }; // 500 ms
+            if (select(0, &rfds2, nullptr, nullptr, &tvRecv) > 0)
+            {
+                char buf[512] = {};
+                int r = ::recv(s, buf, sizeof(buf) - 1, 0);
+                if (r > 0) bytesRecv = static_cast<DWORD>(r);
+            }
         }
     }
     else if (sel == 0)
@@ -78,7 +93,7 @@ ConnectStatus NetworkChecker::CheckTCP(const std::wstring& ip, int port, DWORD& 
 // recv data                             → OK.
 // ──────────────────────────────────────────────────────────────────────────────
 ConnectStatus NetworkChecker::CheckUDP(const std::wstring& ip, int port, DWORD& latMs,
-                                       DWORD& bytesSent, DWORD& bytesRecv)
+                                       DWORD& bytesSent, DWORD& bytesRecv, int timeoutMs)
 {
     latMs = 0; bytesSent = 0; bytesRecv = 0;
 
@@ -109,7 +124,7 @@ ConnectStatus NetworkChecker::CheckUDP(const std::wstring& ip, int port, DWORD& 
 
     fd_set rfds;
     FD_ZERO(&rfds); FD_SET(s, &rfds);
-    timeval tv { 2, 0 };
+    timeval tv { timeoutMs / 1000, (timeoutMs % 1000) * 1000 };
     int sel = select(0, &rfds, nullptr, nullptr, &tv);
 
     ConnectStatus result = ConnectStatus::NO_RESPONSE; // UDP timeout: no reply (open or filtered)
@@ -162,8 +177,8 @@ void NetworkChecker::WorkerProc(std::vector<DestinationResult>* results,
                     pr.status = ConnectStatus::DISABLED;
                 else
                     pr.status = (passProto == Protocol::TCP)
-                        ? CheckTCP(dr.config.ip, pr.entry.port, pr.latencyMs, pr.bytesSent, pr.bytesRecv)
-                        : CheckUDP(dr.config.ip, pr.entry.port, pr.latencyMs, pr.bytesSent, pr.bytesRecv);
+                        ? CheckTCP(dr.config.ip, pr.entry.port, pr.latencyMs, pr.bytesSent, pr.bytesRecv, m_timeoutMs)
+                        : CheckUDP(dr.config.ip, pr.entry.port, pr.latencyMs, pr.bytesSent, pr.bytesRecv, m_timeoutMs);
 
                 if (onResult) onResult(di, pi);
             }

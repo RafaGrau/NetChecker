@@ -56,6 +56,7 @@
 #define IDC_CFG_BTN_IMPORT_CSV  614
 #define IDC_CFG_BTN_EXPORT_CSV  615
 #define IDC_CFG_BTN_NEW_SRV     616   // always creates new server
+#define IDC_CFG_COMBO_TIMEOUT   622   // timeout selector in config editor
 #define IDC_CFG_TOOLBAR_SEP     618   // visual separator below toolbar strip
 #define IDC_CFG_LBL_NAME        619
 #define IDC_CFG_LBL_IP          620
@@ -79,3 +80,27 @@
 #define IDI_ICON_HELP     712  // help.ico
 #define IDI_ICON_SRV_ADD  713  // srv_add.ico
 #define IDI_ICON_SAVE2    714  // save.ico
+
+// ── Config-editor toolbar – new icon IDs ─────────────────────────────────────
+#define IDI_ICON_CSV_IN    715  // csv_in.ico  (Importar CSV)
+#define IDI_ICON_PORT_DEL  716  // port_del.ico
+#define IDI_ICON_PORT_EDIT 717  // port_edit.ico
+#define IDI_ICON_PORT_ADD  718  // reuses srv_add.ico
+#define IDI_ICON_CSV_OUT   719  // csv_out.ico (Exportar CSV)
+
+// ── Config-editor toolbar control & command IDs ───────────────────────────────
+#define IDC_CFG_TOOLBAR    630
+
+#define TB_NEW_SRV         3001  // Nuevo servidor
+#define TB_SAVE_SRV        3002  // Guardar cambios
+#define TB_CSV_IN          3003  // Importar CSV
+#define TB_CSV_OUT         3004  // Exportar CSV
+#define TB_PORT_ADD        3005  // Agregar puerto
+#define TB_PORT_EDIT       3006  // Editar puerto
+#define TB_PORT_DEL        3007  // Borrar puerto
+
+// ── Port editor dialog ────────────────────────────────────────────────────────
+#define IDD_PORT_EDITOR    1020
+#define IDC_PORT_ED_PORT   640
+#define IDC_PORT_ED_PROTO  641
+#define IDC_PORT_ED_DESC   642

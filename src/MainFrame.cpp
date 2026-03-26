@@ -62,12 +62,13 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpcs)
     // Pane 0: status text (stretchy)
     // Pane 1: progress bar (fixed 200 px)
     // Pane 2: source IP    (fixed 160 px)
-    static UINT indicators[] = { ID_SEPARATOR, ID_SEPARATOR, ID_SEPARATOR };
+    static UINT indicators[] = { ID_SEPARATOR, ID_SEPARATOR, ID_SEPARATOR, ID_SEPARATOR };
     m_statusBar.Create(this);
-    m_statusBar.SetIndicators(indicators, 3);
+    m_statusBar.SetIndicators(indicators, 4);
     m_statusBar.SetPaneInfo(0, ID_SEPARATOR, SBPS_STRETCH, 0);
     m_statusBar.SetPaneInfo(1, ID_SEPARATOR, SBPS_NORMAL,  200);
-    m_statusBar.SetPaneInfo(2, ID_SEPARATOR, SBPS_NORMAL,  160);
+    m_statusBar.SetPaneInfo(2, ID_SEPARATOR, SBPS_NORMAL,  150);
+    m_statusBar.SetPaneInfo(3, ID_SEPARATOR, SBPS_NORMAL,  120);
 
     // Taller status bar with a slightly larger font (10pt Segoe UI)
     m_sbFont.CreateFont(
@@ -82,7 +83,7 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpcs)
     // Force minimum height: get current size rect and expand
     CRect rcSb;
     m_statusBar.GetWindowRect(&rcSb);
-    int newH = max(rcSb.Height(), 26);  // at least 26px tall
+    int newH = max(rcSb.Height(), 32);  // at least 32px tall
     m_statusBar.SetWindowPos(nullptr, 0, 0, rcSb.Width(), newH,
                              SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
 
@@ -136,6 +137,7 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpcs)
 
 
     SetStatus(L"Listo");
+    SetTimeoutPane();
 
     // ── Load config ───────────────────────────────────────────────────────────
     DoLoadConfig(true);
@@ -363,6 +365,8 @@ void CMainFrame::DoLoadConfig(bool showSetupIfMissing)
         RebuildResults();
         PopulateCurrentView();
         SetSourceIPPane(m_sourceIP);
+        m_timeoutMs = m_cfg.timeoutMs;
+        SetTimeoutPane();
         SetStatus(L"Configuración cargada.");
     }
     else if (showSetupIfMissing)
@@ -374,12 +378,14 @@ void CMainFrame::DoLoadConfig(bool showSetupIfMissing)
         {
             m_cfg = std::move(workCfg);
             m_sourceIP = NetworkChecker::GetLocalIP();
+            m_timeoutMs = m_cfg.timeoutMs;
             m_cfgMgr.Save(CONFIG_FILE, m_cfg);
             m_cfgExists = true;
             m_cfgDirty  = false;
             RebuildResults();
             PopulateCurrentView();
             SetSourceIPPane(m_sourceIP);
+            SetTimeoutPane();
         }
     }
 }
@@ -455,7 +461,7 @@ void CMainFrame::DoRunCheck()
     m_hasResults = false;
 
     HWND hWnd = GetSafeHwnd();
-
+    m_checker.SetTimeout(m_timeoutMs);
     m_checker.StartAsync(
         m_results,
         [hWnd](int di, int pi)
@@ -568,6 +574,8 @@ void CMainFrame::OnCfgWiz()
             RebuildResults();
             PopulateCurrentView();
             SetSourceIPPane(m_sourceIP);
+            m_timeoutMs = m_cfg.timeoutMs;
+            SetTimeoutPane();
             SetStatus(L"Configuración guardada.");
         }
         else
@@ -588,17 +596,20 @@ void CMainFrame::OnHelp()
     std::wstring helpPath = exePath;
     helpPath += L"NetChecker.chm";
 
-    // HtmlHelp opens the CHM; fall back to ShellExecute if HtmlHelp unavailable
+    // Remove Mark-of-the-Web (Zone.Identifier ADS) so the CHM opens
+    // without the "This file came from the Internet" block.
+    std::wstring zone = helpPath + L":Zone.Identifier";
+    ::DeleteFileW(zone.c_str());   // no-op if the stream doesn't exist
+
     HWND hw = ::HtmlHelp(GetSafeHwnd(), helpPath.c_str(), HH_DISPLAY_TOC, 0);
     if (!hw)
     {
-        // HtmlHelp not available – try ShellExecute
         HINSTANCE r = ShellExecuteW(nullptr, L"open",
             helpPath.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
         if (reinterpret_cast<INT_PTR>(r) <= 32)
-            MessageBox(L"No se encontró NetChecker.chm.\n"
-                       L"Compílelo con HTML Help Workshop (hhc.exe NetChecker.hhp)\n"
-                       L"y colóquelo junto al ejecutable.",
+            MessageBox(L"No se encontr\xf3 NetChecker.chm.\n"
+                       L"Comp\xedlelo con HTML Help Workshop (hhc.exe NetChecker.hhp)\n"
+                       L"y col\xf3quelo junto al ejecutable.",
                        L"Ayuda", MB_ICONINFORMATION);
     }
 }
@@ -1005,6 +1016,14 @@ void CMainFrame::SetSourceIPPane(const std::wstring& ip)
     std::wstring txt = ip.empty() ? L"Origen: --" : L"Origen: " + ip;
     m_statusBar.SetPaneText(2, txt.c_str());
 }
+
+void CMainFrame::SetTimeoutPane()
+{
+    CString txt;
+    txt.Format(L"Timeout: %d ms", m_timeoutMs);
+    m_statusBar.SetPaneText(3, txt);
+}
+
 
 void CMainFrame::SetProgress(int cur, int total)
 {

@@ -1,13 +1,24 @@
 // Microsoft Visual C++ generated resource script.
-// Encoding: Windows-1252  (#pragma code_page 1252)
+//
 #pragma code_page(1252)
 #include "resource.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
 #include "winres.h"
+
+/////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
 
+/////////////////////////////////////////////////////////////////////////////
+// Español (España) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ESN)
 LANGUAGE LANG_SPANISH, SUBLANG_SPANISH
+#pragma code_page(1252)
 
 // Application icon (multi-size: 48, 32, 24, 16)
 IDR_MAINFRAME MENU
@@ -30,11 +41,16 @@ IDI_ICON_CFGEDIT ICON   "..\\res\\cfg_edit.ico"
 IDI_ICON_INFO    ICON   "..\\res\\info.ico"
 IDI_ICON_EXIT    ICON   "..\\res\\exit.ico"
 IDI_ICON_HELP    ICON   "..\\res\\help.ico"
-IDI_ICON_SRV_ADD ICON   "..\\res\\srv_add.ico"
-IDI_ICON_SAVE2   ICON   "..\\res\\save.ico"
-IDI_ICON_GITHUB  ICON   "..\\res\\github.ico"
+IDI_ICON_SRV_ADD  ICON   "..\\res\\srv_add.ico"
+IDI_ICON_SAVE2    ICON   "..\\res\\save.ico"
+IDI_ICON_GITHUB   ICON   "..\\res\\github.ico"
 IDI_ICON_VIEWTABS ICON  "..\\res\\view_tabs.ico"
 IDI_ICON_VIEWLIST ICON  "..\\res\\view_list.ico"
+IDI_ICON_CSV_IN   ICON   "..\\res\\csv_in.ico"
+IDI_ICON_CSV_OUT  ICON   "..\\res\\csv_out.ico"
+IDI_ICON_PORT_DEL  ICON  "..\\res\\port_del.ico"
+IDI_ICON_PORT_EDIT ICON  "..\\res\\port_edit.ico"
+IDI_ICON_PORT_ADD  ICON  "..\\res\\port_add.ico"
 
 // cp1252: 0xE1=a 0xE9=e 0xED=i 0xF3=o 0xFA=u 0xF1=n~ 0xBF=?inv
 
@@ -142,34 +158,83 @@ END
 
 /////////////////////////////////////////////////////////////////////////////
 // IDD_CONFIG_EDITOR
+// Layout: toolbar strip (created dynamically at y=0..~22) |
+//         server form row (y=26..40) | separator (y=42) |
+//         tab+list (y=44..289) | bottom row (y=302)
 
-IDD_CONFIG_EDITOR DIALOGEX 0, 0, 490, 338
+IDD_CONFIG_EDITOR DIALOGEX 0, 0, 410, 312
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Configuración de servidores"
 FONT 9, "Segoe UI", 400, 0, 0x1
 BEGIN
-    PUSHBUTTON      "",IDC_CFG_BTN_NEW_SRV,7,4,24,24,BS_ICON|WS_TABSTOP
-    LTEXT           "Nombre:",IDC_CFG_LBL_NAME,35,12,34,8
-    EDITTEXT        IDC_CFG_EDIT_NAME,71,10,108,12,ES_AUTOHSCROLL|WS_TABSTOP
-    LTEXT           "IP:",IDC_CFG_LBL_IP,183,12,14,8
-    CONTROL         "",IDC_CFG_EDIT_IP,"SysIPAddress32",WS_CHILD|WS_VISIBLE|WS_BORDER|WS_TABSTOP,199,10,88,12
-    LTEXT           "Tipo:",IDC_CFG_LBL_TYPE,291,12,22,8
-    COMBOBOX        IDC_CFG_COMBO_TYPE,315,10,115,60,CBS_DROPDOWNLIST|WS_VSCROLL|WS_TABSTOP
-    PUSHBUTTON      "",IDC_CFG_BTN_ADD_SRV,459,4,24,24,BS_ICON|WS_TABSTOP
-    CONTROL         "",IDC_CFG_TOOLBAR_SEP,"Static",SS_ETCHEDHORZ|WS_CHILD|WS_VISIBLE,0,30,490,1
-    CONTROL         "",IDC_CFG_TAB,"SysTabControl32",TCS_TABS|WS_CHILD|WS_VISIBLE|WS_TABSTOP|WS_CLIPSIBLINGS,7,33,476,225
-    CONTROL         "",IDC_CFG_LIST,"SysListView32",LVS_REPORT|LVS_SHOWSELALWAYS|LVS_SINGLESEL|WS_CHILD|WS_VISIBLE|WS_BORDER|WS_TABSTOP,14,54,462,199
-    LTEXT           "Puerto:",IDC_STATIC,7,266,30,8
-    EDITTEXT        IDC_CFG_EDIT_PORT,39,264,35,12,ES_NUMBER|WS_TABSTOP
-    LTEXT           "Protocolo:",IDC_STATIC,79,266,38,8
-    COMBOBOX        IDC_CFG_COMBO_PROTO,120,264,45,40,CBS_DROPDOWNLIST|WS_TABSTOP
-    LTEXT           "Descripción:",IDC_STATIC,170,266,46,8
-    EDITTEXT        IDC_CFG_EDIT_DESC,218,264,165,12,ES_AUTOHSCROLL|WS_TABSTOP
-    PUSHBUTTON      "Agregar puerto",IDC_CFG_BTN_ADD_PORT,7,281,65,14
-    PUSHBUTTON      "Actualizar",IDC_CFG_BTN_UPD_PORT,76,281,55,14
-    PUSHBUTTON      "Eliminar puerto",IDC_CFG_BTN_DEL_PORT,135,281,65,14
-    PUSHBUTTON      "Importar CSV",IDC_CFG_BTN_IMPORT_CSV,7,316,65,14
-    PUSHBUTTON      "Exportar CSV",IDC_CFG_BTN_EXPORT_CSV,76,316,65,14
-    DEFPUSHBUTTON   "Aceptar",IDOK,365,316,60,14
-    PUSHBUTTON      "Cancelar",IDCANCEL,430,316,55,14
+    // -- Server form row (left-aligned). RepositionFormRow() snaps flush below toolbar.
+    LTEXT           "Nombre:",IDC_CFG_LBL_NAME,7,26,36,8
+    EDITTEXT        IDC_CFG_EDIT_NAME,45,24,100,12,ES_AUTOHSCROLL|WS_TABSTOP
+    LTEXT           "IP:",IDC_CFG_LBL_IP,153,26,14,8
+    CONTROL         "",IDC_CFG_EDIT_IP,"SysIPAddress32",WS_CHILD|WS_VISIBLE|WS_BORDER|WS_TABSTOP,169,24,88,12
+    LTEXT           "Tipo:",IDC_CFG_LBL_TYPE,265,26,24,8
+    COMBOBOX        IDC_CFG_COMBO_TYPE,291,24,110,60,CBS_DROPDOWNLIST|WS_VSCROLL|WS_TABSTOP
+
+    // -- Separator
+    CONTROL         "",IDC_CFG_TOOLBAR_SEP,"Static",SS_ETCHEDHORZ|WS_CHILD|WS_VISIBLE,0,38,410,1
+
+    // -- Tab + list
+    CONTROL         "",IDC_CFG_TAB,"SysTabControl32",TCS_TABS|WS_CHILD|WS_VISIBLE|WS_TABSTOP|WS_CLIPSIBLINGS,7,40,396,248
+    CONTROL         "",IDC_CFG_LIST,"SysListView32",LVS_REPORT|LVS_SHOWSELALWAYS|LVS_SINGLESEL|WS_CHILD|WS_VISIBLE|WS_BORDER|WS_TABSTOP,14,61,382,222
+
+    // -- Bottom row: Timeout (left) + OK/Cancel (right)
+    LTEXT           "Timeout:",IDC_STATIC,7,296,30,8
+    COMBOBOX        IDC_CFG_COMBO_TIMEOUT,40,294,80,50,CBS_DROPDOWNLIST|WS_TABSTOP
+    DEFPUSHBUTTON   "Aceptar",IDOK,285,294,60,14
+    PUSHBUTTON      "Cancelar",IDCANCEL,350,294,55,14
 END
+
+/////////////////////////////////////////////////////////////////////////////
+// IDD_PORT_EDITOR -- modal dialog for adding/editing a single port entry
+
+IDD_PORT_EDITOR DIALOGEX 0, 0, 242, 86
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Puerto"
+FONT 9, "Segoe UI", 400, 0, 0x1
+BEGIN
+    // -- Row 1: Puerto + Protocolo -----------------------------------------------
+    LTEXT           "Puerto:",IDC_STATIC,7,12,34,8
+    EDITTEXT        IDC_PORT_ED_PORT,43,10,44,12,ES_NUMBER|ES_AUTOHSCROLL|WS_TABSTOP
+    LTEXT           "Protocolo:",IDC_STATIC,93,12,44,8
+    COMBOBOX        IDC_PORT_ED_PROTO,139,10,58,40,CBS_DROPDOWNLIST|WS_TABSTOP
+    // -- Row 2-3: Descripción (label + edit full-width) ---------------------------
+    LTEXT           "Descripción:",IDC_STATIC,7,28,50,8
+    EDITTEXT        IDC_PORT_ED_DESC,7,40,228,12,ES_AUTOHSCROLL|WS_TABSTOP
+    // -- Row 4: OK / Cancel ------------------------------------------------------
+    DEFPUSHBUTTON   "Aceptar",IDOK,116,64,55,14
+    PUSHBUTTON      "Cancelar",IDCANCEL,177,64,58,14
+END
+
+#endif    // Español (España) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// TEXTINCLUDE
+
+#ifdef APSTUDIO_INVOKED
+
+1 TEXTINCLUDE
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE
+BEGIN
+    "#include ""winres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+

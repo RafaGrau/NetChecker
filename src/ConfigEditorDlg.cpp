@@ -3,25 +3,124 @@
 #include <fstream>
 #include "ConfigEditorDlg.h"
 
+// ============================================================================
+// CPortEditorDlg
+// ============================================================================
+IMPLEMENT_DYNAMIC(CPortEditorDlg, CDialogEx)
+
+BEGIN_MESSAGE_MAP(CPortEditorDlg, CDialogEx)
+    ON_EN_KILLFOCUS(IDC_PORT_ED_PORT, &CPortEditorDlg::OnPortKillFocus)
+END_MESSAGE_MAP()
+
+CPortEditorDlg::CPortEditorDlg(bool isNew, CWnd* pParent)
+    : CDialogEx(IDD_PORT_EDITOR, pParent)
+    , m_isNew(isNew)
+{
+    // Title is set in OnInitDialog once the window exists.
+}
+
+void CPortEditorDlg::DoDataExchange(CDataExchange* pDX)
+{
+    CDialogEx::DoDataExchange(pDX);
+    DDX_Control(pDX, IDC_PORT_ED_PORT,  m_edPort);
+    DDX_Control(pDX, IDC_PORT_ED_PROTO, m_cbProto);
+    DDX_Control(pDX, IDC_PORT_ED_DESC,  m_edDesc);
+}
+
+BOOL CPortEditorDlg::OnInitDialog()
+{
+    CDialogEx::OnInitDialog();
+
+    SetWindowText(m_isNew ? L"Agregar puerto" : L"Editar puerto");
+
+    m_cbProto.AddString(L"TCP");
+    m_cbProto.AddString(L"UDP");
+
+    if (!m_isNew && m_portNum > 0)
+    {
+        CString s;
+        s.Format(L"%d", m_portNum);
+        m_edPort.SetWindowText(s);
+        m_cbProto.SetCurSel(m_protoSel);
+        m_edDesc.SetWindowText(m_desc);
+    }
+    else
+    {
+        m_cbProto.SetCurSel(0);
+    }
+    return TRUE;
+}
+
+void CPortEditorDlg::OnPortKillFocus()
+{
+    // Auto-fill description from port DB when field is empty
+    CString descText;
+    m_edDesc.GetWindowText(descText);
+    if (!descText.IsEmpty()) return;
+
+    CString portStr;
+    m_edPort.GetWindowText(portStr);
+    portStr.Trim();
+    int pnum = _wtoi(portStr);
+    if (pnum < 1 || pnum > 65535) return;
+
+    Protocol proto = (m_cbProto.GetCurSel() == 0) ? Protocol::TCP : Protocol::UDP;
+    const wchar_t* desc = PortDB::PortDefaultDesc(pnum, proto);
+    if (desc) m_edDesc.SetWindowText(desc);
+}
+
+void CPortEditorDlg::OnOK()
+{
+    CString portStr;
+    m_edPort.GetWindowText(portStr);
+    portStr.Trim();
+    if (portStr.IsEmpty())
+    {
+        MessageBox(L"Introduzca un n\xfamero de puerto.", L"Campo requerido", MB_ICONWARNING);
+        m_edPort.SetFocus();
+        return;
+    }
+    int pnum = _wtoi(portStr);
+    if (pnum < 1 || pnum > 65535)
+    {
+        MessageBox(L"El puerto debe estar entre 1 y 65535.", L"Puerto inv\xe1lido", MB_ICONWARNING);
+        m_edPort.SetFocus();
+        return;
+    }
+    m_portNum  = pnum;
+    m_protoSel = m_cbProto.GetCurSel();
+    m_edDesc.GetWindowText(m_desc);
+    CDialogEx::OnOK();
+}
+
+// ============================================================================
+// CConfigEditorDlg
+// ============================================================================
 IMPLEMENT_DYNAMIC(CConfigEditorDlg, CDialogEx)
 
 BEGIN_MESSAGE_MAP(CConfigEditorDlg, CDialogEx)
-    ON_BN_CLICKED(IDC_CFG_BTN_NEW_SRV,   &CConfigEditorDlg::OnBtnNewServer)
-    ON_BN_CLICKED(IDC_CFG_BTN_ADD_SRV,   &CConfigEditorDlg::OnBtnAddServer)
-    ON_BN_CLICKED(IDC_CFG_BTN_REM_SRV,   &CConfigEditorDlg::OnBtnRemServer)
-    ON_NOTIFY(NM_RCLICK, IDC_CFG_TAB,    &CConfigEditorDlg::OnTabRClick)
-    ON_EN_CHANGE(IDC_CFG_EDIT_NAME,       &CConfigEditorDlg::OnFormChanged)
-    ON_NOTIFY(IPN_FIELDCHANGED, IDC_CFG_EDIT_IP, &CConfigEditorDlg::OnIpChanged)
-    ON_CBN_SELCHANGE(IDC_CFG_COMBO_TYPE,  &CConfigEditorDlg::OnFormChanged)
-    ON_BN_CLICKED(IDC_CFG_BTN_IMPORT_CSV,&CConfigEditorDlg::OnBtnImportCsv)
-    ON_BN_CLICKED(IDC_CFG_BTN_EXPORT_CSV,&CConfigEditorDlg::OnBtnExportCsv)
-    ON_BN_CLICKED(IDC_CFG_BTN_ADD_PORT, &CConfigEditorDlg::OnBtnAddPort)
-    ON_BN_CLICKED(IDC_CFG_BTN_UPD_PORT, &CConfigEditorDlg::OnBtnUpdPort)
-    ON_BN_CLICKED(IDC_CFG_BTN_DEL_PORT, &CConfigEditorDlg::OnBtnDelPort)
-    ON_EN_KILLFOCUS(IDC_CFG_EDIT_PORT,  &CConfigEditorDlg::OnPortEditKillFocus)
-    ON_NOTIFY(TCN_SELCHANGE,   IDC_CFG_TAB,  &CConfigEditorDlg::OnTabSelChange)
+    // Tab / list
+    ON_NOTIFY(NM_RCLICK,     IDC_CFG_TAB,  &CConfigEditorDlg::OnTabRClick)
+    ON_NOTIFY(NM_RCLICK,     IDC_CFG_LIST, &CConfigEditorDlg::OnListRClick)
+    ON_NOTIFY(TCN_SELCHANGE, IDC_CFG_TAB,  &CConfigEditorDlg::OnTabSelChange)
     ON_NOTIFY(LVN_ITEMCHANGED, IDC_CFG_LIST, &CConfigEditorDlg::OnListItemChange)
     ON_NOTIFY(LVN_COLUMNCLICK, IDC_CFG_LIST, &CConfigEditorDlg::OnListColumnClick)
+
+    // Form fields
+    ON_EN_CHANGE(IDC_CFG_EDIT_NAME,          &CConfigEditorDlg::OnFormChanged)
+    ON_NOTIFY(IPN_FIELDCHANGED, IDC_CFG_EDIT_IP, &CConfigEditorDlg::OnIpChanged)
+    ON_CBN_SELCHANGE(IDC_CFG_COMBO_TYPE,     &CConfigEditorDlg::OnFormChanged)
+
+    // Toolbar
+    ON_COMMAND(TB_NEW_SRV,   &CConfigEditorDlg::OnBtnNewServer)
+    ON_COMMAND(TB_SAVE_SRV,  &CConfigEditorDlg::OnBtnAddServer)
+    ON_COMMAND(TB_CSV_IN,    &CConfigEditorDlg::OnBtnImportCsv)
+    ON_COMMAND(TB_CSV_OUT,   &CConfigEditorDlg::OnBtnExportCsv)
+    ON_COMMAND(TB_PORT_ADD,  &CConfigEditorDlg::OnTbPortAdd)
+    ON_COMMAND(TB_PORT_EDIT, &CConfigEditorDlg::OnTbPortEdit)
+    ON_COMMAND(TB_PORT_DEL,  &CConfigEditorDlg::OnBtnDelPort)
+
+    ON_NOTIFY(TBN_GETINFOTIP, IDC_CFG_TOOLBAR, &CConfigEditorDlg::OnTbGetInfoTip)
 END_MESSAGE_MAP()
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -29,7 +128,7 @@ CConfigEditorDlg::CConfigEditorDlg(AppConfig& cfg, CWnd* pParent)
     : CDialogEx(IDD_CONFIG_EDITOR, pParent)
     , m_cfg(cfg)
 {
-    m_servers = cfg.destinations;   // work on a copy
+    m_servers = cfg.destinations;
 }
 
 void CConfigEditorDlg::DoDataExchange(CDataExchange* pDX)
@@ -40,15 +139,204 @@ void CConfigEditorDlg::DoDataExchange(CDataExchange* pDX)
     DDX_Control(pDX, IDC_CFG_COMBO_TYPE,   m_cbType);
     DDX_Control(pDX, IDC_CFG_TAB,          m_tab);
     DDX_Control(pDX, IDC_CFG_LIST,         m_list);
-    DDX_Control(pDX, IDC_CFG_EDIT_PORT,    m_edPort);
-    DDX_Control(pDX, IDC_CFG_COMBO_PROTO,  m_cbProto);
-    DDX_Control(pDX, IDC_CFG_EDIT_DESC,    m_edDesc);
+    DDX_Control(pDX, IDC_CFG_COMBO_TIMEOUT, m_cbTimeout);
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+// CreateToolbar
+// Builds the CToolBarCtrl docked at the top of the dialog.
+// Icon size: 32×32 (buttons 38×38 px).  TBSTYLE_TOOLTIPS enables TBN_GETINFOTIP.
+// ──────────────────────────────────────────────────────────────────────────────
+void CConfigEditorDlg::CreateToolbar()
+{
+    CRect rcDlg;
+    GetClientRect(&rcDlg);
+    CRect rcTb(0, 0, rcDlg.Width(), 40);   // ~38px button + 2px padding; AutoSize ajusta
+
+    DWORD tbStyle = WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS
+                  | CCS_TOP | CCS_NODIVIDER | CCS_NORESIZE
+                  | TBSTYLE_FLAT | TBSTYLE_TOOLTIPS | TBSTYLE_LIST;
+
+    m_toolbar.Create(tbStyle, rcTb, this, IDC_CFG_TOOLBAR);
+    m_toolbar.SetButtonStructSize(sizeof(TBBUTTON));
+    m_toolbar.SendMessage(TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_MIXEDBUTTONS);
+
+    // ── Image list – 32×32 icons (ILC_COLOR32 para calidad óptima) ──────────────
+    m_tbImgList.Create(32, 32, ILC_COLOR32 | ILC_MASK, 7, 1);
+
+    auto addIcon = [&](UINT iconId) {
+        HICON h = static_cast<HICON>(
+            LoadImage(AfxGetInstanceHandle(),
+                      MAKEINTRESOURCE(iconId),
+                      IMAGE_ICON, 32, 32, LR_DEFAULTCOLOR));
+        if (h) { m_tbImgList.Add(h); DestroyIcon(h); }
+        else     m_tbImgList.Add(static_cast<HICON>(nullptr));
+    };
+
+    // Image indices must match iImage values in the TBBUTTON array below:
+    // 0: srv_add  1: save2  2: csv_in  3: csv_out  4: port_add  5: port_edit  6: port_del
+    addIcon(IDI_ICON_SRV_ADD);    // 0 – Nuevo servidor
+    addIcon(IDI_ICON_SAVE2);      // 1 – Guardar cambios
+    addIcon(IDI_ICON_CSV_IN);     // 2 – Importar CSV
+    addIcon(IDI_ICON_CSV_OUT);    // 3 – Exportar CSV
+    addIcon(IDI_ICON_PORT_ADD);   // 4 – Agregar puerto  (port_add.ico)
+    addIcon(IDI_ICON_PORT_EDIT);  // 5 – Editar puerto   (port_edit.ico)
+    addIcon(IDI_ICON_PORT_DEL);   // 6 – Borrar puerto   (port_del.ico)
+
+    m_toolbar.SetImageList(&m_tbImgList);
+
+    // Fijar tamaños explícitos: bitmap 32×32, botón 38×38 (32 + 3px padding c/lado)
+    m_toolbar.SendMessage(TB_SETBITMAPSIZE, 0, MAKELPARAM(32, 32));
+    m_toolbar.SendMessage(TB_SETBUTTONSIZE, 0, MAKELPARAM(38, 38));
+
+    // ── Button definitions ────────────────────────────────────────────────────
+    TBBUTTON tbb[12]{};
+    int n = 0;
+
+    auto btn = [&](UINT id, int img) {
+        tbb[n].idCommand = id;
+        tbb[n].iBitmap   = img;
+        tbb[n].fsState   = TBSTATE_ENABLED;
+        tbb[n].fsStyle   = BTNS_BUTTON | BTNS_AUTOSIZE;
+        ++n;
+    };
+    auto sep = [&]() {
+        tbb[n].fsStyle = BTNS_SEP;
+        tbb[n].iBitmap = 6;   // separator width in pixels
+        ++n;
+    };
+
+    btn(TB_NEW_SRV,  0);  // Nuevo servidor
+    btn(TB_SAVE_SRV, 1);  // Guardar cambios
+    sep();
+    btn(TB_CSV_IN,   2);  // Importar CSV
+    btn(TB_CSV_OUT,  3);  // Exportar CSV
+    sep();
+    btn(TB_PORT_ADD,  4); // Agregar puerto
+    btn(TB_PORT_EDIT, 5); // Editar puerto
+    btn(TB_PORT_DEL,  6); // Borrar puerto
+
+    m_toolbar.AddButtons(n, tbb);
+    m_toolbar.AutoSize();
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// RepositionFormRow
+// Snaps the server-form controls flush below the toolbar's actual bottom edge,
+// independent of DPI or system font.  X-positions match the RC layout (left-
+// aligned).  Labels are vertically centred relative to their paired control.
+// Called once from OnInitDialog after CreateToolbar().
+// ──────────────────────────────────────────────────────────────────────────────
+void CConfigEditorDlg::RepositionFormRow()
+{
+    // ── 1. Toolbar bottom in client pixels ────────────────────────────────────
+    CRect rcTb;
+    m_toolbar.GetWindowRect(&rcTb);
+    ScreenToClient(&rcTb);
+    const int tbBottom = rcTb.bottom;
+
+    // ── 2. Map one DU to pixels via MapDialogRect ────────────────────────────
+    //    We'll use it to convert the fixed margin (2 DU) to pixels.
+    CRect duRef(0, 0, 4, 8);   // 4 DU wide, 8 DU tall (base unit reference)
+    MapDialogRect(&duRef);
+    const int duW = duRef.Width()  / 4;  // pixels per horizontal DU
+    const int duH = duRef.Height() / 8;  // pixels per vertical DU
+
+    // ── 3. Compute row top in pixels (toolbar bottom + 2px gap) ──────────────
+    const int editTop = tbBottom + 2 * duH;
+
+    // Helper: get a control's current pixel rect in client coords
+    auto getRC = [&](int id) -> CRect {
+        CRect r;
+        if (auto* p = GetDlgItem(id)) { p->GetWindowRect(&r); ScreenToClient(&r); }
+        return r;
+    };
+
+    // Helper: move a control to (x, y) keeping its current size
+    auto moveTo = [&](int id, int xPx, int yPx) {
+        if (auto* p = GetDlgItem(id)) {
+            CRect r; p->GetWindowRect(&r); ScreenToClient(&r);
+            p->SetWindowPos(nullptr, xPx, yPx, r.Width(), r.Height(),
+                            SWP_NOZORDER | SWP_NOACTIVATE);
+        }
+    };
+
+    // Helper: centre a label vertically relative to a paired edit/combo height
+    auto labelTop = [&](int editH, int lblH) -> int {
+        return editTop + (editH - lblH) / 2;
+    };
+
+    // ── 4. Get reference heights from actual controls ─────────────────────────
+    CRect rcName   = getRC(IDC_CFG_EDIT_NAME);
+    CRect rcIP     = getRC(IDC_CFG_EDIT_IP);
+    CRect rcCombo  = getRC(IDC_CFG_COMBO_TYPE);
+    CRect rcLblN   = getRC(IDC_CFG_LBL_NAME);
+    CRect rcLblIP  = getRC(IDC_CFG_LBL_IP);
+    CRect rcLblT   = getRC(IDC_CFG_LBL_TYPE);
+
+    const int lblH = rcLblN.Height();
+
+    // ── 5. X-positions from RC layout (DU → px):
+    //   "Nombre:"  x=7  edit  x=45 w=100
+    //   "IP:"      x=153 ctrl x=169 w=88
+    //   "Tipo:"    x=265 combo x=291 w=110
+    //   (all left-aligned, separator to x=490)
+    const int xLblNom = 7  * duW;
+    const int xEdtNom = 45 * duW;
+    const int xLblIP  = 153 * duW;
+    const int xCtrlIP = 169 * duW;
+    const int xLblTyp = 265 * duW;
+    const int xCboTyp = 291 * duW;
+
+    // Edits/combos all share the same top
+    moveTo(IDC_CFG_EDIT_NAME,   xEdtNom, editTop);
+    moveTo(IDC_CFG_EDIT_IP,     xCtrlIP, editTop);
+    moveTo(IDC_CFG_COMBO_TYPE,  xCboTyp, editTop);
+
+    // Labels vertically centred relative to their paired control
+    moveTo(IDC_CFG_LBL_NAME,  xLblNom, labelTop(rcName.Height(),  lblH));
+    moveTo(IDC_CFG_LBL_IP,    xLblIP,  labelTop(rcIP.Height(),    lblH));
+    moveTo(IDC_CFG_LBL_TYPE,  xLblTyp, labelTop(rcCombo.Height(), lblH));
+
+    // ── 6. Separator: 2px below edit bottom, full client width ───────────────
+    const int editBottom = editTop + rcName.Height();
+    const int sepTop     = editBottom + 2;
+    if (auto* p = GetDlgItem(IDC_CFG_TOOLBAR_SEP))
+    {
+        CRect rcDlg; GetClientRect(&rcDlg);
+        p->SetWindowPos(nullptr, 0, sepTop, rcDlg.Width(), 1,
+                        SWP_NOZORDER | SWP_NOACTIVATE);
+    }
+
+    // ── 7. Tab + list: shift down by delta from original tab top ─────────────
+    const int tabTop = sepTop + 2;
+
+    CRect rcTab, rcList;
+    m_tab.GetWindowRect(&rcTab);   ScreenToClient(&rcTab);
+    m_list.GetWindowRect(&rcList); ScreenToClient(&rcList);
+
+    const int delta = tabTop - rcTab.top;
+    if (delta != 0)
+    {
+        m_tab.SetWindowPos(nullptr, rcTab.left, tabTop,
+                           rcTab.Width(), rcTab.Height() - delta,
+                           SWP_NOZORDER | SWP_NOACTIVATE);
+        m_list.SetWindowPos(nullptr, rcList.left, rcList.top + delta,
+                            rcList.Width(), rcList.Height() - delta,
+                            SWP_NOZORDER | SWP_NOACTIVATE);
+    }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// OnInitDialog
 // ──────────────────────────────────────────────────────────────────────────────
 BOOL CConfigEditorDlg::OnInitDialog()
 {
     CDialogEx::OnInitDialog();
+
+    // ── Toolbar ───────────────────────────────────────────────────────────────
+    CreateToolbar();
+    RepositionFormRow();   // flush form row immediately below actual toolbar bottom
 
     // ── Server type combo ─────────────────────────────────────────────────────
     m_cbType.AddString(PortDB::TypeName(DestinationType::DC));
@@ -57,28 +345,23 @@ BOOL CConfigEditorDlg::OnInitDialog()
     m_cbType.AddString(PortDB::TypeName(DestinationType::SCCM_DP));
     m_cbType.SetCurSel(0);
 
-    // ── Icon buttons ──────────────────────────────────────────────────────────
-    auto setIcon = [&](int ctrlId, UINT iconId) {
-        HICON h = static_cast<HICON>(LoadImage(AfxGetInstanceHandle(),
-            MAKEINTRESOURCE(iconId), IMAGE_ICON, 24, 24, LR_DEFAULTCOLOR));
-        if (h) SendDlgItemMessage(ctrlId, BM_SETIMAGE, IMAGE_ICON,
-                                  reinterpret_cast<LPARAM>(h));
-    };
-    setIcon(IDC_CFG_BTN_NEW_SRV, IDI_ICON_SRV_ADD);
-    setIcon(IDC_CFG_BTN_ADD_SRV, IDI_ICON_SAVE2);
-
-    // ── Tooltips ──────────────────────────────────────────────────────────────
+    // ── Tooltips (dialog-level, for form controls) ────────────────────────────
     m_tooltip.Create(this);
     m_tooltip.SetDelayTime(TTDT_INITIAL, 600);
-    if (auto* p = GetDlgItem(IDC_CFG_BTN_NEW_SRV))
-        m_tooltip.AddTool(p, L"Nuevo servidor");
-    if (auto* p = GetDlgItem(IDC_CFG_BTN_ADD_SRV))
-        m_tooltip.AddTool(p, L"Guardar / Actualizar servidor");
+    if (auto* p = GetDlgItem(IDC_CFG_EDIT_NAME))
+        m_tooltip.AddTool(p, L"Nombre del servidor");
+    if (auto* p = GetDlgItem(IDC_CFG_EDIT_IP))
+        m_tooltip.AddTool(p, L"Direcci\xf3n IP del servidor");
 
-    // ── Port-editor combos ────────────────────────────────────────────────────
-    m_cbProto.AddString(L"TCP");
-    m_cbProto.AddString(L"UDP");
-    m_cbProto.SetCurSel(0);
+    // ── Timeout combo ─────────────────────────────────────────────────────────
+    m_cbTimeout.AddString(L"500 ms");
+    m_cbTimeout.AddString(L"1000 ms");
+    m_cbTimeout.AddString(L"2000 ms");
+    int tIdx = 1;
+    if      (m_cfg.timeoutMs == 500)  tIdx = 0;
+    else if (m_cfg.timeoutMs == 1000) tIdx = 1;
+    else if (m_cfg.timeoutMs == 2000) tIdx = 2;
+    m_cbTimeout.SetCurSel(tIdx);
 
     // ── Port list columns ─────────────────────────────────────────────────────
     m_list.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES | LVS_EX_HEADERDRAGDROP);
@@ -86,7 +369,7 @@ BOOL CConfigEditorDlg::OnInitDialog()
     m_list.InsertColumn(1, L"Protocolo",      LVCFMT_LEFT,  75);
     m_list.InsertColumn(2, L"Descripci\xf3n", LVCFMT_LEFT, 330);
 
-    // ── Load existing servers (m_dirty reset by SwitchToServer → save disabled) ─
+    // ── Load servers ──────────────────────────────────────────────────────────
     RefreshTabs();
     if (!m_servers.empty())
         SwitchToServer(0);
@@ -95,13 +378,15 @@ BOOL CConfigEditorDlg::OnInitDialog()
     return TRUE;
 }
 
-// ── IP address control helpers ─────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────────
+// IP helpers
+// ──────────────────────────────────────────────────────────────────────────────
 std::wstring CConfigEditorDlg::GetIP() const
 {
     DWORD addr = 0;
     const_cast<CWnd&>(m_edIP).SendMessage(IPM_GETADDRESS, 0, (LPARAM)&addr);
     if (addr == 0) return L"";
-    wchar_t buf[20] = {};
+    wchar_t buf[20]{};
     swprintf_s(buf, L"%u.%u.%u.%u",
         FIRST_IPADDRESS(addr),  SECOND_IPADDRESS(addr),
         THIRD_IPADDRESS(addr),  FOURTH_IPADDRESS(addr));
@@ -116,7 +401,9 @@ void CConfigEditorDlg::SetIP(const std::wstring& ip)
         m_edIP.SendMessage(IPM_SETADDRESS, 0, MAKEIPADDRESS(a, b, c, d));
 }
 
-// ── Tab management ─────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────────
+// Tab management
+// ──────────────────────────────────────────────────────────────────────────────
 void CConfigEditorDlg::RefreshTabs()
 {
     m_tab.DeleteAllItems();
@@ -134,11 +421,11 @@ void CConfigEditorDlg::RefreshTabs()
 
 void CConfigEditorDlg::SwitchToServer(int idx)
 {
-    m_curSrv = idx;
-    m_sortCol = -1;
-    m_sortAsc = true;
-    m_dirty   = false;
-    m_inhibitDirty = true;   // suppress EN_CHANGE / IPN_FIELDCHANGED during fills
+    m_curSrv       = idx;
+    m_sortCol      = -1;
+    m_sortAsc      = true;
+    m_dirty        = false;
+    m_inhibitDirty = true;
 
     // Clear header sort arrows
     if (m_list.GetSafeHwnd())
@@ -177,14 +464,13 @@ void CConfigEditorDlg::SwitchToServer(int idx)
         m_edIP.SendMessage(IPM_CLEARADDRESS, 0, 0);
         m_cbType.SetCurSel(0);
     }
-    m_edPort.SetWindowText(L"");
-    m_edDesc.SetWindowText(L"");
-    m_cbProto.SetCurSel(0);
-    m_inhibitDirty = false;  // re-enable dirty tracking
+    m_inhibitDirty = false;
     UpdateButtonStates();
 }
 
-// ── Port list population ───────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────────
+// Port list
+// ──────────────────────────────────────────────────────────────────────────────
 void CConfigEditorDlg::PopulateList(int srvIdx)
 {
     m_list.DeleteAllItems();
@@ -200,48 +486,34 @@ void CConfigEditorDlg::PopulateList(int srvIdx)
     }
 }
 
-void CConfigEditorDlg::ListRowToEditor(int row)
+// ──────────────────────────────────────────────────────────────────────────────
+// EditPortDlg – open CPortEditorDlg for add or edit, return true on IDOK
+// ──────────────────────────────────────────────────────────────────────────────
+bool CConfigEditorDlg::EditPortDlg(PortEntry& pe, bool isNew)
 {
-    if (row < 0) return;
-    m_edPort.SetWindowText(m_list.GetItemText(row, 0));
-    CString proto = m_list.GetItemText(row, 1);
-    m_cbProto.SelectString(-1, proto);
-    m_edDesc.SetWindowText(m_list.GetItemText(row, 2));
-}
+    CPortEditorDlg dlg(isNew, this);
 
-bool CConfigEditorDlg::EditorToPortEntry(PortEntry& pe)
-{
-    CString portStr;
-    m_edPort.GetWindowText(portStr);
-    portStr.Trim();
-    if (portStr.IsEmpty())
+    if (!isNew)
     {
-        MessageBox(L"Introduzca un n\xfamero de puerto.", L"Campo requerido", MB_ICONWARNING);
-        m_edPort.SetFocus();
-        return false;
+        dlg.m_portNum  = pe.port;
+        dlg.m_protoSel = (pe.protocol == Protocol::UDP) ? 1 : 0;
+        dlg.m_desc     = pe.description.c_str();
     }
-    int pnum = _wtoi(portStr);
-    if (pnum < 1 || pnum > 65535)
-    {
-        MessageBox(L"El puerto debe estar entre 1 y 65535.", L"Puerto inv\xe1lido", MB_ICONWARNING);
-        m_edPort.SetFocus();
-        return false;
-    }
-    pe.port     = pnum;
-    pe.protocol = (m_cbProto.GetCurSel() == 0) ? Protocol::TCP : Protocol::UDP;
-    CString desc;
-    m_edDesc.GetWindowText(desc);
-    pe.description = desc.GetString();
+
+    if (dlg.DoModal() != IDOK) return false;
+
+    pe.port        = dlg.m_portNum;
+    pe.protocol    = (dlg.m_protoSel == 1) ? Protocol::UDP : Protocol::TCP;
+    pe.description = dlg.m_desc.GetString();
     pe.enabled     = true;
     return true;
 }
 
-// ── Button handlers ────────────────────────────────────────────────────────────
-// ── "Nuevo" button – clears form for adding a new server ─────────────────────
+// ──────────────────────────────────────────────────────────────────────────────
+// Button / toolbar handlers
+// ──────────────────────────────────────────────────────────────────────────────
 void CConfigEditorDlg::OnBtnNewServer()
 {
-    // Clear the form fields for entering a new server.
-    // Do NOT touch the grid – the currently selected tab stays visible.
     m_curSrv = -1;
     m_dirty  = false;
     m_edName.SetWindowText(L"");
@@ -251,7 +523,6 @@ void CConfigEditorDlg::OnBtnNewServer()
     m_edName.SetFocus();
 }
 
-// ── "Guardar" button – add new OR update existing ────────────────────────────
 void CConfigEditorDlg::OnBtnAddServer()
 {
     CString name;
@@ -263,7 +534,6 @@ void CConfigEditorDlg::OnBtnAddServer()
         m_edName.SetFocus();
         return;
     }
-
     DWORD ipVal = 0;
     m_edIP.SendMessage(IPM_GETADDRESS, 0, (LPARAM)&ipVal);
     if (ipVal == 0)
@@ -282,9 +552,9 @@ void CConfigEditorDlg::OnBtnAddServer()
     if (typeIdx < 0) typeIdx = 0;
     DestinationType dt = kTypes[typeIdx];
 
-    // ── UPDATE existing server ────────────────────────────────────────────────
     if (m_curSrv >= 0 && m_curSrv < (int)m_servers.size())
     {
+        // Update existing
         auto& srv = m_servers[m_curSrv];
         srv.name = name.GetString();
         srv.ip   = GetIP();
@@ -303,7 +573,7 @@ void CConfigEditorDlg::OnBtnAddServer()
         return;
     }
 
-    // ── ADD new server ────────────────────────────────────────────────────────
+    // Add new server
     DestinationConfig dc;
     dc.name  = name.GetString();
     dc.ip    = GetIP();
@@ -351,30 +621,15 @@ void CConfigEditorDlg::OnBtnRemServer()
     }
 }
 
-
-void CConfigEditorDlg::OnPortEditKillFocus()
-{
-    // Only suggest when description is empty (don't overwrite user text)
-    CString descText;
-    m_edDesc.GetWindowText(descText);
-    if (!descText.IsEmpty()) return;
-
-    CString portStr;
-    m_edPort.GetWindowText(portStr);
-    portStr.Trim();
-    int pnum = _wtoi(portStr);
-    if (pnum < 1 || pnum > 65535) return;
-
-    Protocol proto = (m_cbProto.GetCurSel() == 0) ? Protocol::TCP : Protocol::UDP;
-    const wchar_t* desc = PortDB::PortDefaultDesc(pnum, proto);
-    if (desc) m_edDesc.SetWindowText(desc);
-}
-
-void CConfigEditorDlg::OnBtnAddPort()
+// ──────────────────────────────────────────────────────────────────────────────
+// Toolbar port handlers  (call EditPortDlg instead of inline form)
+// ──────────────────────────────────────────────────────────────────────────────
+void CConfigEditorDlg::OnTbPortAdd()
 {
     if (m_curSrv < 0) return;
-    PortEntry pe;
-    if (!EditorToPortEntry(pe)) return;
+
+    PortEntry pe{};
+    if (!EditPortDlg(pe, true)) return;
 
     m_servers[m_curSrv].ports.push_back(pe);
 
@@ -383,27 +638,27 @@ void CConfigEditorDlg::OnBtnAddPort()
     m_list.SetItemText(row, 1, pe.protocol == Protocol::TCP ? L"TCP" : L"UDP");
     m_list.SetItemText(row, 2, pe.description.c_str());
 
-    // Clear editor fields for next entry
-    m_edPort.SetWindowText(L"");
-    m_edDesc.SetWindowText(L"");
-    m_cbProto.SetCurSel(0);
-    m_edPort.SetFocus();
+    // Select the newly added row
+    m_list.SetItemState(row, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+    m_list.EnsureVisible(row, FALSE);
+    UpdateButtonStates();
 }
 
-void CConfigEditorDlg::OnBtnUpdPort()
+void CConfigEditorDlg::OnTbPortEdit()
 {
     int sel = m_list.GetNextItem(-1, LVNI_SELECTED);
     if (sel < 0 || m_curSrv < 0) return;
+    if (sel >= (int)m_servers[m_curSrv].ports.size()) return;
 
-    PortEntry pe;
-    if (!EditorToPortEntry(pe)) return;
+    PortEntry pe = m_servers[m_curSrv].ports[sel];
+    if (!EditPortDlg(pe, false)) return;
 
-    if (sel < (int)m_servers[m_curSrv].ports.size())
-        m_servers[m_curSrv].ports[sel] = pe;
+    m_servers[m_curSrv].ports[sel] = pe;
 
     m_list.SetItemText(sel, 0, std::to_wstring(pe.port).c_str());
     m_list.SetItemText(sel, 1, pe.protocol == Protocol::TCP ? L"TCP" : L"UDP");
     m_list.SetItemText(sel, 2, pe.description.c_str());
+    UpdateButtonStates();
 }
 
 void CConfigEditorDlg::OnBtnDelPort()
@@ -422,283 +677,73 @@ void CConfigEditorDlg::OnBtnDelPort()
         int next = min(sel, count - 1);
         m_list.SetItemState(next, LVIS_SELECTED | LVIS_FOCUSED,
                                   LVIS_SELECTED | LVIS_FOCUSED);
-        ListRowToEditor(next);
+    }
+    UpdateButtonStates();
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// List right-click context menu
+// ──────────────────────────────────────────────────────────────────────────────
+void CConfigEditorDlg::OnListRClick(NMHDR* /*pNMHDR*/, LRESULT* pResult)
+{
+    if (m_curSrv < 0) { *pResult = 0; return; }
+
+    int sel = m_list.GetNextItem(-1, LVNI_SELECTED);
+
+    CMenu menu;
+    menu.CreatePopupMenu();
+
+    if (sel >= 0)
+    {
+        // Right-click on existing row
+        menu.AppendMenu(MF_STRING, TB_PORT_EDIT, L"Editar puerto");
+        menu.AppendMenu(MF_STRING, TB_PORT_DEL,  L"Borrar puerto");
     }
     else
     {
-        m_edPort.SetWindowText(L"");
-        m_edDesc.SetWindowText(L"");
-        m_cbProto.SetCurSel(0);
+        // Right-click on empty area
+        menu.AppendMenu(MF_STRING, TB_PORT_ADD, L"Agregar puerto");
     }
-    UpdateButtonStates();
-}
 
-void CConfigEditorDlg::OnListColumnClick(NMHDR* pNMHDR, LRESULT* pResult)
-{
-    auto* pNM = reinterpret_cast<NMLISTVIEW*>(pNMHDR);
-    int col = pNM->iSubItem;   // 0 = Port, 1 = Protocol (only those two are sortable)
-    if (col != 0 && col != 1) { *pResult = 0; return; }
+    CPoint pt;
+    ::GetCursorPos(&pt);
+    int cmd = menu.TrackPopupMenu(
+        TPM_LEFTALIGN | TPM_RIGHTBUTTON | TPM_RETURNCMD,
+        pt.x, pt.y, this);
 
-    if (m_sortCol == col)
-        m_sortAsc = !m_sortAsc;         // same column → reverse
-    else
+    switch (cmd)
     {
-        m_sortCol = col;
-        m_sortAsc = true;
+    case TB_PORT_ADD:  OnTbPortAdd();  break;
+    case TB_PORT_EDIT: OnTbPortEdit(); break;
+    case TB_PORT_DEL:  OnBtnDelPort(); break;
     }
-
-    if (m_curSrv < 0 || m_curSrv >= (int)m_servers.size()) { *pResult = 0; return; }
-
-    auto& ports = m_servers[m_curSrv].ports;
-
-    if (col == 0)   // sort by Port number
-    {
-        std::stable_sort(ports.begin(), ports.end(),
-            [asc = m_sortAsc](const PortEntry& a, const PortEntry& b)
-            { return asc ? a.port < b.port : a.port > b.port; });
-    }
-    else            // sort by Protocol (TCP < UDP), then by port within group
-    {
-        std::stable_sort(ports.begin(), ports.end(),
-            [asc = m_sortAsc](const PortEntry& a, const PortEntry& b)
-            {
-                if (a.protocol != b.protocol)
-                    return asc ? (a.protocol < b.protocol)
-                               : (a.protocol > b.protocol);
-                return a.port < b.port;   // secondary: port asc always
-            });
-    }
-
-    // Update column-header arrow indicator
-    HDITEM hdi{};
-    hdi.mask = HDI_FORMAT;
-    CHeaderCtrl* pH = m_list.GetHeaderCtrl();
-    for (int i = 0; i < 2; ++i)
-    {
-        pH->GetItem(i, &hdi);
-        hdi.fmt &= ~(HDF_SORTUP | HDF_SORTDOWN);
-        if (i == col)
-            hdi.fmt |= (m_sortAsc ? HDF_SORTUP : HDF_SORTDOWN);
-        pH->SetItem(i, &hdi);
-    }
-
-    PopulateList(m_curSrv);
-
-    // Clear editor fields after re-sort
-    m_edPort.SetWindowText(L"");
-    m_edDesc.SetWindowText(L"");
-    m_cbProto.SetCurSel(0);
-    UpdateButtonStates();
-
     *pResult = 0;
 }
 
-void CConfigEditorDlg::OnTabSelChange(NMHDR* /*pNMHDR*/, LRESULT* pResult)
+// ──────────────────────────────────────────────────────────────────────────────
+// Toolbar tooltips (TBN_GETINFOTIP)
+// ──────────────────────────────────────────────────────────────────────────────
+void CConfigEditorDlg::OnTbGetInfoTip(NMHDR* pNMHDR, LRESULT* pResult)
 {
-    SwitchToServer(m_tab.GetCurSel());
+    auto* pTip = reinterpret_cast<NMTBGETINFOTIP*>(pNMHDR);
+
+    const wchar_t* tip = L"";
+    switch (pTip->iItem)
+    {
+    case TB_NEW_SRV:   tip = L"Nuevo servidor";     break;
+    case TB_SAVE_SRV:  tip = L"Guardar cambios";    break;
+    case TB_CSV_IN:    tip = L"Importar CSV";        break;
+    case TB_CSV_OUT:   tip = L"Exportar CSV";        break;
+    case TB_PORT_ADD:  tip = L"Agregar puerto";      break;
+    case TB_PORT_EDIT: tip = L"Editar puerto";       break;
+    case TB_PORT_DEL:  tip = L"Borrar puerto";       break;
+    }
+    wcsncpy_s(pTip->pszText, pTip->cchTextMax, tip, _TRUNCATE);
     *pResult = 0;
 }
 
-void CConfigEditorDlg::OnListItemChange(NMHDR* pNMHDR, LRESULT* pResult)
-{
-    auto* pNM = reinterpret_cast<NMLISTVIEW*>(pNMHDR);
-    if ((pNM->uNewState & LVIS_SELECTED) && !(pNM->uOldState & LVIS_SELECTED))
-        ListRowToEditor(pNM->iItem);
-    UpdateButtonStates();
-    *pResult = 0;
-}
-
-// ── Layout helpers ─────────────────────────────────────────────────────────────
-void CConfigEditorDlg::PositionList()
-{
-    if (!m_tab.GetSafeHwnd() || !m_list.GetSafeHwnd()) return;
-
-    CRect rc;
-    m_tab.GetWindowRect(&rc);
-    ScreenToClient(&rc);
-    m_tab.AdjustRect(FALSE, &rc);   // body area of the tab control
-    rc.DeflateRect(2, 2);
-    m_list.MoveWindow(&rc);
-}
-
-void CConfigEditorDlg::UpdateButtonStates()
-{
-    bool hasSrv = (m_curSrv >= 0 && m_curSrv < (int)m_servers.size());
-    bool hasSel = hasSrv && (m_list.GetNextItem(-1, LVNI_SELECTED) >= 0);
-
-    // Save button logic:
-    // - Existing server (hasSrv): enabled only when form has content AND m_dirty
-    // - New server mode (m_curSrv == -1): enabled when name + IP filled (ready to add)
-    CString name; m_edName.GetWindowText(name); name.Trim();
-    DWORD ipVal = 0;
-    m_edIP.SendMessage(IPM_GETADDRESS, 0, (LPARAM)&ipVal);
-    bool hasInput = !name.IsEmpty() && ipVal != 0;
-    bool saveEnabled = hasSrv ? (hasInput && m_dirty) : hasInput;
-
-    auto enable = [this](int id, bool on) {
-        if (auto* p = GetDlgItem(id)) p->EnableWindow(on);
-    };
-
-    enable(IDC_CFG_BTN_ADD_SRV,  saveEnabled);
-    enable(IDC_CFG_BTN_REM_SRV,  hasSrv);
-    enable(IDC_CFG_EDIT_PORT,    hasSrv);
-    enable(IDC_CFG_COMBO_PROTO,  hasSrv);
-    enable(IDC_CFG_EDIT_DESC,    hasSrv);
-    enable(IDC_CFG_BTN_ADD_PORT, hasSrv);
-    enable(IDC_CFG_BTN_UPD_PORT, hasSel);
-    enable(IDC_CFG_BTN_DEL_PORT, hasSel);
-}
-
-// ── CSV helpers ────────────────────────────────────────────────────────────────
-// Format: hostname,ip,type,port/TCP,port/UDP,...
-// type values: DC | PrintServer | SCCM | SCCM_DP
-
-static DestinationType CsvParseType(const std::wstring& s)
-{
-    if (s == L"DC")          return DestinationType::DC;
-    if (s == L"PrintServer") return DestinationType::PrintServer;
-    if (s == L"SCCM")        return DestinationType::SCCM_Full;
-    if (s == L"SCCM_DP")     return DestinationType::SCCM_DP;
-    return DestinationType::DC;
-}
-static const wchar_t* CsvTypeName(DestinationType t)
-{
-    switch (t)
-    {
-    case DestinationType::DC:          return L"DC";
-    case DestinationType::PrintServer: return L"PrintServer";
-    case DestinationType::SCCM_Full:   return L"SCCM";
-    case DestinationType::SCCM_DP:     return L"SCCM_DP";
-    }
-    return L"DC";
-}
-static std::vector<std::wstring> CsvSplit(const std::wstring& line)
-{
-    std::vector<std::wstring> cols;
-    std::wstring cur;
-    for (wchar_t c : line)
-    {
-        if (c == L',') { cols.push_back(cur); cur.clear(); }
-        else             cur += c;
-    }
-    cols.push_back(cur);
-    return cols;
-}
-
-void CConfigEditorDlg::OnBtnExportCsv()
-{
-    if (m_servers.empty())
-    {
-        MessageBox(L"No hay servidores que exportar.", L"Exportar CSV", MB_ICONINFORMATION);
-        return;
-    }
-    CFileDialog dlg(FALSE, L"csv", L"NetChecker_servers.csv",
-        OFN_OVERWRITEPROMPT,
-        L"Archivos CSV (*.csv)|*.csv|Todos (*.*)|*.*||", this);
-    if (dlg.DoModal() != IDOK) return;
-
-    std::wofstream f(dlg.GetPathName().GetString());
-    if (!f.is_open()) { MessageBox(L"No se pudo crear el archivo.", L"Error", MB_ICONERROR); return; }
-
-    // Header
-    f << L"hostname,ip,type,ports (port/proto)\n";
-
-    for (const auto& srv : m_servers)
-    {
-        f << srv.name << L"," << srv.ip << L"," << CsvTypeName(srv.type);
-        for (const auto& pe : srv.ports)
-            f << L"," << pe.port << L"/" << (pe.protocol == Protocol::TCP ? L"TCP" : L"UDP");
-        f << L"\n";
-    }
-    if (!f.good()) { MessageBox(L"Error al escribir el archivo.", L"Error", MB_ICONERROR); return; }
-    MessageBox(L"Exportación completada.", L"Exportar CSV", MB_ICONINFORMATION);
-}
-
-void CConfigEditorDlg::OnBtnImportCsv()
-{
-    CFileDialog dlg(TRUE, L"csv", nullptr,
-        OFN_FILEMUSTEXIST,
-        L"Archivos CSV (*.csv)|*.csv|Todos (*.*)|*.*||", this);
-    if (dlg.DoModal() != IDOK) return;
-
-    std::wifstream f(dlg.GetPathName().GetString());
-    if (!f.is_open()) { MessageBox(L"No se pudo abrir el archivo.", L"Error", MB_ICONERROR); return; }
-
-    int imported = 0, skipped = 0;
-    std::wstring line;
-    bool firstLine = true;
-
-    while (std::getline(f, line))
-    {
-        // Remove trailing \r
-        if (!line.empty() && line.back() == L'\r') line.pop_back();
-        if (line.empty()) continue;
-
-        // Skip header row (starts with "hostname" case-insensitive)
-        if (firstLine)
-        {
-            firstLine = false;
-            std::wstring low = line;
-            for (auto& c : low) c = towlower(c);
-            if (low.find(L"hostname") != std::wstring::npos) continue;
-        }
-
-        auto cols = CsvSplit(line);
-        if (cols.size() < 4) { ++skipped; continue; }
-
-        DestinationConfig dc;
-        dc.name = cols[0];
-        dc.ip   = cols[1];
-        dc.type = CsvParseType(cols[2]);
-
-        // Remaining columns: port/PROTO
-        for (size_t i = 3; i < cols.size(); ++i)
-        {
-            auto& token = cols[i];
-            auto slash = token.find(L'/');
-            if (slash == std::wstring::npos) continue;
-            int port = _wtoi(token.substr(0, slash).c_str());
-            if (port < 1 || port > 65535) continue;
-            Protocol proto = (token.substr(slash + 1) == L"UDP")
-                             ? Protocol::UDP : Protocol::TCP;
-            PortEntry pe{port, proto, L"", true};
-            const wchar_t* desc = PortDB::PortDefaultDesc(port, proto);
-            if (desc) pe.description = desc;
-            dc.ports.push_back(pe);
-        }
-
-        if (dc.name.empty() || dc.ip.empty() || dc.ports.empty()) { ++skipped; continue; }
-        m_servers.push_back(std::move(dc));
-        ++imported;
-    }
-
-    if (imported == 0)
-    {
-        CString msg; msg.Format(L"No se importó ningún servidor. Líneas omitidas: %d", skipped);
-        MessageBox(msg, L"Importar CSV", MB_ICONWARNING);
-        return;
-    }
-
-    RefreshTabs();
-    SwitchToServer((int)m_servers.size() - 1);
-
-    CString msg;
-    msg.Format(L"Importados: %d servidor(es). Omitidos: %d", imported, skipped);
-    MessageBox(msg, L"Importar CSV", MB_ICONINFORMATION);
-}
-
 // ──────────────────────────────────────────────────────────────────────────────
-// PreTranslateMessage – relay messages to tooltip
-// ──────────────────────────────────────────────────────────────────────────────
-BOOL CConfigEditorDlg::PreTranslateMessage(MSG* pMsg)
-{
-    m_tooltip.RelayEvent(pMsg);
-    return CDialogEx::PreTranslateMessage(pMsg);
-}
-
-// ──────────────────────────────────────────────────────────────────────────────
-// ──────────────────────────────────────────────────────────────────────────────
-// OnTabRClick – right-click on tab bar: context menu to delete server
+// Tab right-click (delete server)
 // ──────────────────────────────────────────────────────────────────────────────
 void CConfigEditorDlg::OnTabRClick(NMHDR* /*pNMHDR*/, LRESULT* pResult)
 {
@@ -725,7 +770,6 @@ void CConfigEditorDlg::OnTabRClick(NMHDR* /*pNMHDR*/, LRESULT* pResult)
 
         if (cmd == 1)
         {
-            // Delete directly — no second confirmation (menu item IS the confirmation)
             m_servers.erase(m_servers.begin() + m_curSrv);
             m_tab.DeleteItem(m_curSrv);
             int newSel = min(m_curSrv, (int)m_servers.size() - 1);
@@ -747,7 +791,7 @@ void CConfigEditorDlg::OnTabRClick(NMHDR* /*pNMHDR*/, LRESULT* pResult)
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// OnFormChanged / OnIpChanged – mark dirty and refresh save button state
+// Form change tracking
 // ──────────────────────────────────────────────────────────────────────────────
 void CConfigEditorDlg::OnFormChanged()
 {
@@ -763,7 +807,7 @@ void CConfigEditorDlg::OnIpChanged(NMHDR* /*pNMHDR*/, LRESULT* pResult)
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// OnOK – commit working copy to config on Accept
+// OnOK
 // ──────────────────────────────────────────────────────────────────────────────
 void CConfigEditorDlg::OnOK()
 {
@@ -773,6 +817,249 @@ void CConfigEditorDlg::OnOK()
                    L"Configuraci\xf3n vac\xeda", MB_ICONWARNING);
         return;
     }
+    static const int kTimeouts[] = { 500, 1000, 2000 };
+    int tIdx = m_cbTimeout.GetCurSel();
+    m_cfg.timeoutMs = (tIdx >= 0 && tIdx < 3) ? kTimeouts[tIdx] : 1000;
     m_cfg.destinations = m_servers;
     CDialogEx::OnOK();
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// List / tab notifications
+// ──────────────────────────────────────────────────────────────────────────────
+void CConfigEditorDlg::OnTabSelChange(NMHDR* /*pNMHDR*/, LRESULT* pResult)
+{
+    SwitchToServer(m_tab.GetCurSel());
+    *pResult = 0;
+}
+
+void CConfigEditorDlg::OnListItemChange(NMHDR* pNMHDR, LRESULT* pResult)
+{
+    auto* pNM = reinterpret_cast<NMLISTVIEW*>(pNMHDR);
+    (void)pNM;
+    UpdateButtonStates();
+    *pResult = 0;
+}
+
+void CConfigEditorDlg::OnListColumnClick(NMHDR* pNMHDR, LRESULT* pResult)
+{
+    auto* pNM = reinterpret_cast<NMLISTVIEW*>(pNMHDR);
+    int col = pNM->iSubItem;
+    if (col != 0 && col != 1) { *pResult = 0; return; }
+
+    if (m_sortCol == col)
+        m_sortAsc = !m_sortAsc;
+    else { m_sortCol = col; m_sortAsc = true; }
+
+    if (m_curSrv < 0 || m_curSrv >= (int)m_servers.size()) { *pResult = 0; return; }
+
+    auto& ports = m_servers[m_curSrv].ports;
+    if (col == 0)
+    {
+        std::stable_sort(ports.begin(), ports.end(),
+            [asc = m_sortAsc](const PortEntry& a, const PortEntry& b)
+            { return asc ? a.port < b.port : a.port > b.port; });
+    }
+    else
+    {
+        std::stable_sort(ports.begin(), ports.end(),
+            [asc = m_sortAsc](const PortEntry& a, const PortEntry& b)
+            {
+                if (a.protocol != b.protocol)
+                    return asc ? (a.protocol < b.protocol) : (a.protocol > b.protocol);
+                return a.port < b.port;
+            });
+    }
+
+    HDITEM hdi{};
+    hdi.mask = HDI_FORMAT;
+    CHeaderCtrl* pH = m_list.GetHeaderCtrl();
+    for (int i = 0; i < 2; ++i)
+    {
+        pH->GetItem(i, &hdi);
+        hdi.fmt &= ~(HDF_SORTUP | HDF_SORTDOWN);
+        if (i == col)
+            hdi.fmt |= (m_sortAsc ? HDF_SORTUP : HDF_SORTDOWN);
+        pH->SetItem(i, &hdi);
+    }
+
+    PopulateList(m_curSrv);
+    UpdateButtonStates();
+    *pResult = 0;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Layout helpers
+// ──────────────────────────────────────────────────────────────────────────────
+void CConfigEditorDlg::PositionList()
+{
+    if (!m_tab.GetSafeHwnd() || !m_list.GetSafeHwnd()) return;
+
+    CRect rc;
+    m_tab.GetWindowRect(&rc);
+    ScreenToClient(&rc);
+    m_tab.AdjustRect(FALSE, &rc);
+    rc.DeflateRect(2, 2);
+    m_list.MoveWindow(&rc);
+}
+
+void CConfigEditorDlg::UpdateButtonStates()
+{
+    bool hasSrv = (m_curSrv >= 0 && m_curSrv < (int)m_servers.size());
+    bool hasSel = hasSrv && (m_list.GetNextItem(-1, LVNI_SELECTED) >= 0);
+
+    CString name; m_edName.GetWindowText(name); name.Trim();
+    DWORD ipVal = 0;
+    m_edIP.SendMessage(IPM_GETADDRESS, 0, (LPARAM)&ipVal);
+    bool hasInput   = !name.IsEmpty() && ipVal != 0;
+    bool saveEnabled = hasSrv ? (hasInput && m_dirty) : hasInput;
+
+    if (m_toolbar.GetSafeHwnd())
+    {
+        m_toolbar.EnableButton(TB_SAVE_SRV,  saveEnabled ? TRUE : FALSE);
+        m_toolbar.EnableButton(TB_PORT_ADD,  hasSrv      ? TRUE : FALSE);
+        m_toolbar.EnableButton(TB_PORT_EDIT, hasSel      ? TRUE : FALSE);
+        m_toolbar.EnableButton(TB_PORT_DEL,  hasSel      ? TRUE : FALSE);
+    }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// PreTranslateMessage
+// ──────────────────────────────────────────────────────────────────────────────
+BOOL CConfigEditorDlg::PreTranslateMessage(MSG* pMsg)
+{
+    m_tooltip.RelayEvent(pMsg);
+    return CDialogEx::PreTranslateMessage(pMsg);
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// CSV helpers (unchanged logic, same as previous version)
+// ──────────────────────────────────────────────────────────────────────────────
+static DestinationType CsvParseType(const std::wstring& s)
+{
+    if (s == L"DC")          return DestinationType::DC;
+    if (s == L"PrintServer") return DestinationType::PrintServer;
+    if (s == L"SCCM")        return DestinationType::SCCM_Full;
+    if (s == L"SCCM_DP")     return DestinationType::SCCM_DP;
+    return DestinationType::DC;
+}
+static const wchar_t* CsvTypeName(DestinationType t)
+{
+    switch (t)
+    {
+    case DestinationType::DC:          return L"DC";
+    case DestinationType::PrintServer: return L"PrintServer";
+    case DestinationType::SCCM_Full:   return L"SCCM";
+    case DestinationType::SCCM_DP:     return L"SCCM_DP";
+    }
+    return L"DC";
+}
+static std::vector<std::wstring> CsvSplit(const std::wstring& line)
+{
+    std::vector<std::wstring> cols;
+    std::wstring cur;
+    for (wchar_t c : line)
+    {
+        if (c == L',') { cols.push_back(cur); cur.clear(); }
+        else            cur += c;
+    }
+    cols.push_back(cur);
+    return cols;
+}
+
+void CConfigEditorDlg::OnBtnExportCsv()
+{
+    if (m_servers.empty())
+    {
+        MessageBox(L"No hay servidores que exportar.", L"Exportar CSV", MB_ICONINFORMATION);
+        return;
+    }
+    CFileDialog dlg(FALSE, L"csv", L"NetChecker_servers.csv",
+        OFN_OVERWRITEPROMPT,
+        L"Archivos CSV (*.csv)|*.csv|Todos (*.*)|*.*||", this);
+    if (dlg.DoModal() != IDOK) return;
+
+    std::wofstream f(dlg.GetPathName().GetString());
+    if (!f.is_open()) { MessageBox(L"No se pudo crear el archivo.", L"Error", MB_ICONERROR); return; }
+
+    f << L"hostname,ip,type,ports (port/proto)\n";
+    for (const auto& srv : m_servers)
+    {
+        f << srv.name << L"," << srv.ip << L"," << CsvTypeName(srv.type);
+        for (const auto& pe : srv.ports)
+            f << L"," << pe.port << L"/" << (pe.protocol == Protocol::TCP ? L"TCP" : L"UDP");
+        f << L"\n";
+    }
+    if (!f.good()) { MessageBox(L"Error al escribir el archivo.", L"Error", MB_ICONERROR); return; }
+    MessageBox(L"Exportaci\xf3n completada.", L"Exportar CSV", MB_ICONINFORMATION);
+}
+
+void CConfigEditorDlg::OnBtnImportCsv()
+{
+    CFileDialog dlg(TRUE, L"csv", nullptr,
+        OFN_FILEMUSTEXIST,
+        L"Archivos CSV (*.csv)|*.csv|Todos (*.*)|*.*||", this);
+    if (dlg.DoModal() != IDOK) return;
+
+    std::wifstream f(dlg.GetPathName().GetString());
+    if (!f.is_open()) { MessageBox(L"No se pudo abrir el archivo.", L"Error", MB_ICONERROR); return; }
+
+    int imported = 0, skipped = 0;
+    std::wstring line;
+    bool firstLine = true;
+
+    while (std::getline(f, line))
+    {
+        if (!line.empty() && line.back() == L'\r') line.pop_back();
+        if (line.empty()) continue;
+
+        if (firstLine)
+        {
+            firstLine = false;
+            std::wstring low = line;
+            for (auto& c : low) c = towlower(c);
+            if (low.find(L"hostname") != std::wstring::npos) continue;
+        }
+
+        auto cols = CsvSplit(line);
+        if (cols.size() < 4) { ++skipped; continue; }
+
+        DestinationConfig dc;
+        dc.name = cols[0];
+        dc.ip   = cols[1];
+        dc.type = CsvParseType(cols[2]);
+
+        for (size_t i = 3; i < cols.size(); ++i)
+        {
+            auto& token = cols[i];
+            auto slash = token.find(L'/');
+            if (slash == std::wstring::npos) continue;
+            int port = _wtoi(token.substr(0, slash).c_str());
+            if (port < 1 || port > 65535) continue;
+            Protocol proto = (token.substr(slash + 1) == L"UDP")
+                             ? Protocol::UDP : Protocol::TCP;
+            PortEntry pe{port, proto, L"", true};
+            const wchar_t* desc = PortDB::PortDefaultDesc(port, proto);
+            if (desc) pe.description = desc;
+            dc.ports.push_back(pe);
+        }
+
+        if (dc.name.empty() || dc.ip.empty() || dc.ports.empty()) { ++skipped; continue; }
+        m_servers.push_back(std::move(dc));
+        ++imported;
+    }
+
+    if (imported == 0)
+    {
+        CString msg; msg.Format(L"No se import\xf3 ning\xfan servidor. L\xedneas omitidas: %d", skipped);
+        MessageBox(msg, L"Importar CSV", MB_ICONWARNING);
+        return;
+    }
+
+    RefreshTabs();
+    SwitchToServer((int)m_servers.size() - 1);
+
+    CString msg;
+    msg.Format(L"Importados: %d servidor(es). Omitidos: %d", imported, skipped);
+    MessageBox(msg, L"Importar CSV", MB_ICONINFORMATION);
 }

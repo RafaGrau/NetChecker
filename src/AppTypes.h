@@ -72,6 +72,7 @@ struct DestinationResult
 
 struct AppConfig
 {
+    int                             timeoutMs { 1000 };   // port check timeout
     std::vector<DestinationConfig>  destinations;
 };
 

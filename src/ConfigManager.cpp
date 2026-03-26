@@ -33,6 +33,10 @@ bool ConfigManager::Load(const wchar_t* path, AppConfig& out)
         return false;
     }
 
+    // <Settings timeout="..."/>
+    if (auto sNode = root->FirstChild(L"Settings"))
+        out.timeoutMs = sNode->AttrInt(L"timeout", 1000);
+
     // <Destinations>
     auto destsNode = root->FirstChild(L"Destinations");
     if (!destsNode) return true;
@@ -71,6 +75,9 @@ bool ConfigManager::Save(const wchar_t* path, const AppConfig& cfg)
 {
     XmlWriter w;
     w.Open(L"NetCheckerConfig", {{L"version", L"3"}});
+
+    // Settings
+    w.EmptyElement(L"Settings", {{L"timeout", std::to_wstring(cfg.timeoutMs)}});
 
     // Destinations
     w.Open(L"Destinations");
