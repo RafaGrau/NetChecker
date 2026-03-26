@@ -66,6 +66,7 @@ protected:
     afx_msg LRESULT OnNcComplete(WPARAM wParam, LPARAM lParam);
     afx_msg void    OnTabSelChange(NMHDR* pNMHDR, LRESULT* pResult);
     afx_msg BOOL    OnToolTipText(UINT id, NMHDR* pNMHDR, LRESULT* pResult);
+    afx_msg void    OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized);
 
     DECLARE_MESSAGE_MAP()
 
@@ -96,6 +97,7 @@ private:
     // ── Helpers ───────────────────────────────────────────────────────────────
     void BuildToolbar();
     void BuildImageLists();
+    void ApplyToolbarMetrics();   // reapply button size/padding + stretch separator
     void PopulateCurrentView();    // refresh list or tab view
     void ApplyViewMode();          // show/hide list vs tab+lists, resize
     void DestroyTabLists();        // free m_tabLists

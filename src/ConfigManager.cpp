@@ -12,6 +12,9 @@ DestinationType ConfigManager::ParseType(const std::wstring& tag)
     if (tag == L"PrintServer") return DestinationType::PrintServer;
     if (tag == L"SCCM_Full")   return DestinationType::SCCM_Full;
     if (tag == L"SCCM_DP")     return DestinationType::SCCM_DP;
+    if (tag == L"DNS")         return DestinationType::DNS;
+    if (tag == L"DHCP")        return DestinationType::DHCP;
+    if (tag == L"Custom")      return DestinationType::Custom;
     return DestinationType::DC;
 }
 

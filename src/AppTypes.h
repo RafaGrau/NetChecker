@@ -14,7 +14,7 @@
 // ──────────────────────────────────────────────────────────────────
 enum class Protocol       { TCP, UDP };
 enum class ConnectStatus  { PENDING, OK, FAILED, NO_RESPONSE, UNKNOWN, DISABLED };
-enum class DestinationType{ DC, PrintServer, SCCM_Full, SCCM_DP };
+enum class DestinationType{ DC, PrintServer, SCCM_Full, SCCM_DP, DNS, DHCP, Custom };
 
 // ──────────────────────────────────────────────────────────────────
 // Colours

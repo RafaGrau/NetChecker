@@ -343,6 +343,9 @@ BOOL CConfigEditorDlg::OnInitDialog()
     m_cbType.AddString(PortDB::TypeName(DestinationType::PrintServer));
     m_cbType.AddString(PortDB::TypeName(DestinationType::SCCM_Full));
     m_cbType.AddString(PortDB::TypeName(DestinationType::SCCM_DP));
+    m_cbType.AddString(PortDB::TypeName(DestinationType::DNS));
+    m_cbType.AddString(PortDB::TypeName(DestinationType::DHCP));
+    m_cbType.AddString(PortDB::TypeName(DestinationType::Custom));
     m_cbType.SetCurSel(0);
 
     // ── Tooltips (dialog-level, for form controls) ────────────────────────────
@@ -452,9 +455,10 @@ void CConfigEditorDlg::SwitchToServer(int idx)
         static const DestinationType kTypes[] =
         {
             DestinationType::DC, DestinationType::PrintServer,
-            DestinationType::SCCM_Full, DestinationType::SCCM_DP
+            DestinationType::SCCM_Full, DestinationType::SCCM_DP,
+            DestinationType::DNS, DestinationType::DHCP, DestinationType::Custom
         };
-        for (int t = 0; t < 4; ++t)
+        for (int t = 0; t < 7; ++t)
             if (kTypes[t] == srv.type) { m_cbType.SetCurSel(t); break; }
     }
     else
@@ -546,7 +550,8 @@ void CConfigEditorDlg::OnBtnAddServer()
     static const DestinationType kTypes[] =
     {
         DestinationType::DC, DestinationType::PrintServer,
-        DestinationType::SCCM_Full, DestinationType::SCCM_DP
+        DestinationType::SCCM_Full, DestinationType::SCCM_DP,
+        DestinationType::DNS, DestinationType::DHCP, DestinationType::Custom
     };
     int typeIdx = m_cbType.GetCurSel();
     if (typeIdx < 0) typeIdx = 0;
@@ -941,6 +946,9 @@ static DestinationType CsvParseType(const std::wstring& s)
     if (s == L"PrintServer") return DestinationType::PrintServer;
     if (s == L"SCCM")        return DestinationType::SCCM_Full;
     if (s == L"SCCM_DP")     return DestinationType::SCCM_DP;
+    if (s == L"DNS")         return DestinationType::DNS;
+    if (s == L"DHCP")        return DestinationType::DHCP;
+    if (s == L"Custom")      return DestinationType::Custom;
     return DestinationType::DC;
 }
 static const wchar_t* CsvTypeName(DestinationType t)
@@ -951,6 +959,9 @@ static const wchar_t* CsvTypeName(DestinationType t)
     case DestinationType::PrintServer: return L"PrintServer";
     case DestinationType::SCCM_Full:   return L"SCCM";
     case DestinationType::SCCM_DP:     return L"SCCM_DP";
+    case DestinationType::DNS:         return L"DNS";
+    case DestinationType::DHCP:        return L"DHCP";
+    case DestinationType::Custom:      return L"Custom";
     }
     return L"DC";
 }
@@ -977,7 +988,7 @@ void CConfigEditorDlg::OnBtnExportCsv()
     CFileDialog dlg(FALSE, L"csv", L"NetChecker_servers.csv",
         OFN_OVERWRITEPROMPT,
         L"Archivos CSV (*.csv)|*.csv|Todos (*.*)|*.*||", this);
-    if (dlg.DoModal() != IDOK) return;
+    if (dlg.DoModal() != IDOK) { RepositionFormRow(); return; }
 
     std::wofstream f(dlg.GetPathName().GetString());
     if (!f.is_open()) { MessageBox(L"No se pudo crear el archivo.", L"Error", MB_ICONERROR); return; }
@@ -990,8 +1001,9 @@ void CConfigEditorDlg::OnBtnExportCsv()
             f << L"," << pe.port << L"/" << (pe.protocol == Protocol::TCP ? L"TCP" : L"UDP");
         f << L"\n";
     }
-    if (!f.good()) { MessageBox(L"Error al escribir el archivo.", L"Error", MB_ICONERROR); return; }
+    if (!f.good()) { MessageBox(L"Error al escribir el archivo.", L"Error", MB_ICONERROR); RepositionFormRow(); return; }
     MessageBox(L"Exportaci\xf3n completada.", L"Exportar CSV", MB_ICONINFORMATION);
+    RepositionFormRow();
 }
 
 void CConfigEditorDlg::OnBtnImportCsv()
@@ -999,7 +1011,7 @@ void CConfigEditorDlg::OnBtnImportCsv()
     CFileDialog dlg(TRUE, L"csv", nullptr,
         OFN_FILEMUSTEXIST,
         L"Archivos CSV (*.csv)|*.csv|Todos (*.*)|*.*||", this);
-    if (dlg.DoModal() != IDOK) return;
+    if (dlg.DoModal() != IDOK) { RepositionFormRow(); return; }
 
     std::wifstream f(dlg.GetPathName().GetString());
     if (!f.is_open()) { MessageBox(L"No se pudo abrir el archivo.", L"Error", MB_ICONERROR); return; }
@@ -1053,6 +1065,7 @@ void CConfigEditorDlg::OnBtnImportCsv()
     {
         CString msg; msg.Format(L"No se import\xf3 ning\xfan servidor. L\xedneas omitidas: %d", skipped);
         MessageBox(msg, L"Importar CSV", MB_ICONWARNING);
+        RepositionFormRow();
         return;
     }
 
@@ -1062,4 +1075,5 @@ void CConfigEditorDlg::OnBtnImportCsv()
     CString msg;
     msg.Format(L"Importados: %d servidor(es). Omitidos: %d", imported, skipped);
     MessageBox(msg, L"Importar CSV", MB_ICONINFORMATION);
+    RepositionFormRow();
 }

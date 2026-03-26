@@ -11,6 +11,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
     ON_WM_CLOSE()
     ON_WM_DESTROY()
     ON_WM_SIZE()
+    ON_WM_ACTIVATE()
     ON_NOTIFY(TCN_SELCHANGE, AFX_IDW_PANE_FIRST + 1, &CMainFrame::OnTabSelChange)
     ON_NOTIFY_EX(TTN_NEEDTEXTW, 0, &CMainFrame::OnToolTipText)
     ON_NOTIFY_EX(TTN_NEEDTEXTA, 0, &CMainFrame::OnToolTipText)
@@ -677,50 +678,68 @@ void CMainFrame::OnClose()
     CFrameWnd::OnClose();
 }
 
-void CMainFrame::OnSize(UINT nType, int cx, int cy)
+// ──────────────────────────────────────────────────────────────────────────────
+// ApplyToolbarMetrics
+// Reapplies button size/padding and recalculates the stretch separator that
+// pushes HELP+INFO to the right edge.  Called from OnSize AND OnActivate so
+// that the toolbar looks correct after RecalcLayout fires without a resize
+// (e.g. when a modal dialog opens or closes).
+// ──────────────────────────────────────────────────────────────────────────────
+void CMainFrame::ApplyToolbarMetrics()
 {
-    CFrameWnd::OnSize(nType, cx, cy);
-    if (!m_toolbar.GetSafeHwnd() || cx <= 0) return;
+    if (!m_toolbar.GetSafeHwnd()) return;
 
-    // RecalcLayout (called by base OnSize) resets TB button size/padding;
-    // reapply after every resize to maintain consistent spacing.
-    m_toolbar.GetToolBarCtrl().SetButtonSize(CSize(40, 40));
-    m_toolbar.GetToolBarCtrl().SendMessage(TB_SETPADDING, 0, MAKELPARAM(10, 6));
-
-    // ── Stretch separator so INFO stays right-aligned ─────────────────────────
     CToolBarCtrl& tb = m_toolbar.GetToolBarCtrl();
-    int btnInfo = -1, btnSep = -1;
+
+    // RecalcLayout (triggered by MFC on activate/resize) resets these; reapply.
+    tb.SetButtonSize(CSize(40, 40));
+    tb.SendMessage(TB_SETPADDING, 0, MAKELPARAM(10, 6));
+
+    // Stretch separator so INFO+HELP stay right-aligned ──────────────────────
+    int btnInfo = -1, btnHelp = -1, btnSep = -1;
     int count = tb.GetButtonCount();
     for (int i = 0; i < count; ++i)
     {
         TBBUTTON tbb{};
         tb.GetButton(i, &tbb);
         if (tbb.idCommand == IDC_BTN_INFO)     btnInfo = i;
+        if (tbb.idCommand == IDC_BTN_HELP)     btnHelp = i;
         if (tbb.idCommand == IDC_BTN_INFO_SEP) btnSep  = i;
     }
-    if (btnSep >= 0 && btnInfo >= 0)
+    if (btnSep >= 0 && btnInfo >= 0 && btnHelp >= 0)
     {
-        CRect rcInfo; tb.GetItemRect(btnInfo, &rcInfo);
-        CRect rcSep;  tb.GetItemRect(btnSep,  &rcSep);
-        CRect rcTb;   tb.GetClientRect(&rcTb);
-        // Sum width of all buttons right of the separator (HELP + INFO)
-        int rightWidth = rcInfo.Width();
-        for (int i = 0; i < count; ++i) {
-            TBBUTTON tbb2{}; tb.GetButton(i, &tbb2);
-            if (tbb2.idCommand == IDC_BTN_HELP) {
-                CRect rc2; tb.GetItemRect(i, &rc2);
-                rightWidth += rc2.Width();
-                break;
-            }
-        }
+        CRect rcInfo, rcHelp, rcSep, rcTb;
+        tb.GetItemRect(btnInfo, &rcInfo);
+        tb.GetItemRect(btnHelp, &rcHelp);
+        tb.GetItemRect(btnSep,  &rcSep);
+        tb.GetClientRect(&rcTb);
+        int rightWidth = rcInfo.Width() + rcHelp.Width();
         int stretch = max(8, rcTb.Width() - rcSep.left - rightWidth - 4);
         TBBUTTONINFO tbi{}; tbi.cbSize = sizeof(tbi);
         tbi.dwMask = TBIF_SIZE; tbi.cx = static_cast<WORD>(stretch);
         tb.SetButtonInfo(IDC_BTN_INFO_SEP, &tbi);
     }
+}
+
+void CMainFrame::OnSize(UINT nType, int cx, int cy)
+{
+    CFrameWnd::OnSize(nType, cx, cy);
+    if (!m_toolbar.GetSafeHwnd() || cx <= 0) return;
+
+    ApplyToolbarMetrics();
 
     // ── Resize content area ───────────────────────────────────────────────────
     LayoutContent(cx, cy);
+}
+
+void CMainFrame::OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized)
+{
+    CFrameWnd::OnActivate(nState, pWndOther, bMinimized);
+    // When a modal dialog (e.g. ConfigEditorDlg) closes and the frame regains
+    // focus, MFC calls RecalcLayout() which resets button size and padding.
+    // Restore them here so the toolbar always looks consistent.
+    if (nState == WA_ACTIVE || nState == WA_CLICKACTIVE)
+        ApplyToolbarMetrics();
 }
 
 void CMainFrame::OnDestroy()

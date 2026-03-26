@@ -59,8 +59,8 @@
 #define IDC_CFG_COMBO_TIMEOUT   622   // timeout selector in config editor
 #define IDC_CFG_TOOLBAR_SEP     618   // visual separator below toolbar strip
 #define IDC_CFG_LBL_NAME        619
-#define IDC_CFG_LBL_IP          620
-#define IDC_CFG_LBL_TYPE        621
+#define IDC_CFG_LBL_IP          623
+#define IDC_CFG_LBL_TYPE        624
 
 
 

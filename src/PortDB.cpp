@@ -64,15 +64,39 @@ static const std::vector<PortEntry> s_SCCM_DP =
     {8531,  Protocol::TCP, L"WSUS HTTPS",                   true},
 };
 
+// ─── DNS Server ───────────────────────────────────────────────────────────────
+static const std::vector<PortEntry> s_DNS =
+{
+    {  53,  Protocol::TCP, L"DNS (TCP)",                    true},
+    {  53,  Protocol::UDP, L"DNS (UDP)",                    true},
+    { 853,  Protocol::TCP, L"DNS over TLS",                 false},
+    { 953,  Protocol::TCP, L"RNDC (Named control)",         false},
+};
+
+// ─── DHCP Server ──────────────────────────────────────────────────────────────
+static const std::vector<PortEntry> s_DHCP =
+{
+    {  67,  Protocol::UDP, L"DHCP Server",                  true},
+    {  68,  Protocol::UDP, L"DHCP Client",                  true},
+    { 546,  Protocol::UDP, L"DHCPv6 Client",                false},
+    { 547,  Protocol::UDP, L"DHCPv6 Server",                false},
+};
+
+// ─── Custom (no default ports) ────────────────────────────────────────────────
+// Returns empty vector; user adds ports manually via the port editor dialog.
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 std::vector<PortEntry> GetPorts(DestinationType t)
 {
     switch (t)
     {
-    case DestinationType::DC:         return s_DC;
+    case DestinationType::DC:          return s_DC;
     case DestinationType::PrintServer: return s_PS;
-    case DestinationType::SCCM_Full:  return s_SCCM_Full;
-    case DestinationType::SCCM_DP:    return s_SCCM_DP;
+    case DestinationType::SCCM_Full:   return s_SCCM_Full;
+    case DestinationType::SCCM_DP:     return s_SCCM_DP;
+    case DestinationType::DNS:         return s_DNS;
+    case DestinationType::DHCP:        return s_DHCP;
+    case DestinationType::Custom:      return {};
     }
     return {};
 }
@@ -85,6 +109,9 @@ const wchar_t* TypeName(DestinationType t)
     case DestinationType::PrintServer: return L"Print Server";
     case DestinationType::SCCM_Full:   return L"SCCM (Full)";
     case DestinationType::SCCM_DP:     return L"SCCM DP";
+    case DestinationType::DNS:         return L"Servidor DNS";
+    case DestinationType::DHCP:        return L"Servidor DHCP";
+    case DestinationType::Custom:      return L"Personalizado";
     }
     return L"Unknown";
 }
@@ -97,6 +124,9 @@ const wchar_t* TypeTag(DestinationType t)
     case DestinationType::PrintServer: return L"PrintServer";
     case DestinationType::SCCM_Full:   return L"SCCM_Full";
     case DestinationType::SCCM_DP:     return L"SCCM_DP";
+    case DestinationType::DNS:         return L"DNS";
+    case DestinationType::DHCP:        return L"DHCP";
+    case DestinationType::Custom:      return L"Custom";
     }
     return L"Unknown";
 }
