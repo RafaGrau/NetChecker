@@ -8,7 +8,7 @@ de forma asíncrona, con informe HTML exportable.
 
 Desarrollada con la asistencia de **Claude Sonnet** (Anthropic).  
 
-<img width="1002" height="628" alt="image" src="https://github.com/user-attachments/assets/e947ca2e-d6ed-4501-a686-f6c920f7f00f" />
+<img width="894" height="616" alt="image" src="https://github.com/user-attachments/assets/d018aaad-282e-42a7-a868-696c571c8415" />
 
 <img width="820" height="817" alt="image" src="https://github.com/user-attachments/assets/caea3c08-855e-4ab1-afe8-9bafd05e836d" />
 
