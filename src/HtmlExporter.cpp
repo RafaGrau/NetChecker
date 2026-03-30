@@ -3,7 +3,12 @@
 #include <fstream>
 #include <sstream>
 #include <ctime>
+#include <codecvt>
+#include <locale>
 
+// ──────────────────────────────────────────────────────────────────────────────
+// HtmlColor – CSS colour for a ConnectStatus value
+// ──────────────────────────────────────────────────────────────────────────────
 static std::wstring HtmlColor(ConnectStatus s)
 {
     switch (s) {
@@ -14,28 +19,42 @@ static std::wstring HtmlColor(ConnectStatus s)
     }
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+// Export
+// ──────────────────────────────────────────────────────────────────────────────
 bool HtmlExporter::Export(const wchar_t* path,
                           const std::vector<DestinationResult>& results,
-                          const std::wstring& sourceIP)
+                          const std::wstring& sourceIP,
+                          int timeoutMs)
 {
-    // Timestamp
+    // ── Timestamp ─────────────────────────────────────────────────────────────
     time_t now = time(nullptr);
     struct tm lt {};
     localtime_s(&lt, &now);
     wchar_t ts[64];
     wcsftime(ts, 64, L"%Y-%m-%d %H:%M:%S", &lt);
 
+    // ── Open file for UTF-8 output ────────────────────────────────────────────
+    // std::wofstream defaults to the system ANSI codepage; imbue with UTF-8
+    // so that accented characters in server names, descriptions, etc. are
+    // written correctly regardless of the system locale.
+#pragma warning(push)
+#pragma warning(disable: 4996)   // codecvt_utf8 deprecated in C++17 but still available
     std::wofstream f(path);
     if (!f.is_open()) return false;
+    f.imbue(std::locale(f.getloc(),
+                        new std::codecvt_utf8<wchar_t>));
+#pragma warning(pop)
 
+    // ── CSS + header ──────────────────────────────────────────────────────────
     f << L"<!DOCTYPE html>\n<html lang=\"es\">\n<head>\n"
       << L"<meta charset=\"UTF-8\">\n"
       << L"<title>NetChecker Report</title>\n"
       << L"<style>\n"
       << L"body{font-family:Segoe UI,Arial,sans-serif;font-size:13px;background:#f5f5f5;color:#222;}\n"
-      << L"h1{background:#1a3a5c;color:#fff;padding:12px 20px;margin:0;font-size:17px;font-weight:400;}\n"
-      << L"h1 span.src{font-size:13px;color:#c8d8ea;margin-left:12px;}\n"
-      << L"p.meta{background:#dde;padding:5px 20px;margin:0;font-size:11px;color:#445;}\n"
+      << L"h1{background:#1a3a5c;color:#fff;padding:10px 20px;margin:0;font-size:17px;font-weight:400;line-height:1.7;}\n"
+      << L"h1 .r1{font-size:17px;font-weight:600;display:block;}\n"
+      << L"h1 .r2{font-size:17px;font-weight:400;color:#c0d4e8;display:block;}\n"
       << L"h2{background:#2a5080;color:#fff;padding:6px 16px;margin:16px 0 0;font-size:14px;font-weight:400;}\n"
       << L"table{border-collapse:collapse;width:100%;margin-bottom:16px;table-layout:fixed;}\n"
       << L"col.c-port{width:70px;}\n"
@@ -54,17 +73,19 @@ bool HtmlExporter::Export(const wchar_t* path,
       << L".unk{color:#b47800;font-weight:600}\n"
       << L".pend{color:#969696}\n"
       << L"</style></head><body>\n"
-      << L"<h1>&#x1F5CE; NetChecker Connectivity Report"
-      << L"<span class=\"src\"> &mdash; IP de origen: "
+      << L"<h1>"
+      << L"<span class=\"r1\">NetChecker Connectivity Report &nbsp;&mdash;&nbsp; " << ts << L"</span>"
+      << L"<span class=\"r2\">IP Origen: "
       << (sourceIP.empty() ? L"(desconocida)" : sourceIP)
-      << L"</span></h1>\n"
-      << L"<p class=\"meta\">Generado: " << ts << L"</p>\n";
+      << L" &nbsp;&nbsp;&nbsp;&nbsp; (Timeout: " << timeoutMs << L" ms)"
+      << L"</span></h1>\n";
 
+    // ── Results table per destination ─────────────────────────────────────────
     for (const auto& dr : results)
     {
-        f << L"<h2>" << dr.config.name
-          << L" &nbsp;<small>(" << dr.config.ip << L" &mdash; "
-          << PortDB::TypeName(dr.config.type) << L")</small></h2>\n"
+        f << L"<h2>IP Destino: " << dr.config.ip
+          << L" &nbsp;&nbsp;&nbsp;&nbsp; Hostname: " << dr.config.name
+          << L" &nbsp;&mdash;&nbsp; (" << PortDB::TypeName(dr.config.type) << L")</h2>\n"
           << L"<table>"
           << L"<colgroup><col class=\"c-port\"><col class=\"c-proto\"><col class=\"c-desc\">"
           << L"<col class=\"c-status\"><col class=\"c-lat\"><col class=\"c-tx\"><col class=\"c-rx\"></colgroup>"
@@ -79,8 +100,8 @@ bool HtmlExporter::Export(const wchar_t* path,
             for (const auto& pr : dr.portResults)
             {
                 if (pr.entry.protocol != passProto) continue;
+                if (!pr.enabled) continue;
 
-                if (!pr.enabled) continue;  // skip ports not selected for checking
                 const wchar_t* cls = L"pend";
                 switch (pr.status) {
                 case ConnectStatus::OK:          cls = L"ok";     break;

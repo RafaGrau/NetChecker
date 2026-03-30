@@ -54,7 +54,7 @@ protected:
     // Server operations (invoked from toolbar)
     afx_msg void OnBtnNewServer();
     afx_msg void OnBtnAddServer();
-    afx_msg void OnBtnRemServer();
+    afx_msg void OnTbDelServer();
     afx_msg void OnBtnImportCsv();
     afx_msg void OnBtnExportCsv();
 

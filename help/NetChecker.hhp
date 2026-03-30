@@ -1,5 +1,5 @@
 [OPTIONS]
-Default Font=Arial,9,0
+Default Font=Segoe UI,11,0
 Compatibility=1.1 or later
 Compiled file=NetChecker.chm
 Contents file=NetChecker.hhc
@@ -7,7 +7,7 @@ Index file=NetChecker.hhk
 Default topic=intro.htm
 Full-text search=Yes
 Language=0x40a Español (España)
-Title=NetChecker - Ayuda
+Title=Ayuda de NetChecker
 
 [FILES]
 intro.htm

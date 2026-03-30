@@ -553,7 +553,7 @@ void CMainFrame::OnSaveHtml()
     if (dlg.DoModal() != IDOK) return;
 
     HtmlExporter exp;
-    if (!exp.Export(dlg.GetPathName(), m_results, m_sourceIP))
+    if (!exp.Export(dlg.GetPathName(), m_results, m_sourceIP, m_timeoutMs))
         MessageBox(L"Error al guardar el informe HTML.", L"Error", MB_ICONERROR);
     else
         SetStatus(L"Informe HTML guardado.");

@@ -114,6 +114,7 @@ BEGIN_MESSAGE_MAP(CConfigEditorDlg, CDialogEx)
     // Toolbar
     ON_COMMAND(TB_NEW_SRV,   &CConfigEditorDlg::OnBtnNewServer)
     ON_COMMAND(TB_SAVE_SRV,  &CConfigEditorDlg::OnBtnAddServer)
+    ON_COMMAND(TB_DEL_SRV,   &CConfigEditorDlg::OnTbDelServer)
     ON_COMMAND(TB_CSV_IN,    &CConfigEditorDlg::OnBtnImportCsv)
     ON_COMMAND(TB_CSV_OUT,   &CConfigEditorDlg::OnBtnExportCsv)
     ON_COMMAND(TB_PORT_ADD,  &CConfigEditorDlg::OnTbPortAdd)
@@ -174,14 +175,15 @@ void CConfigEditorDlg::CreateToolbar()
     };
 
     // Image indices must match iImage values in the TBBUTTON array below:
-    // 0: srv_add  1: save2  2: csv_in  3: csv_out  4: port_add  5: port_edit  6: port_del
+    // 0: srv_add  1: save2  2: srv_del  3: csv_in  4: csv_out  5: port_add  6: port_edit  7: port_del
     addIcon(IDI_ICON_SRV_ADD);    // 0 – Nuevo servidor
     addIcon(IDI_ICON_SAVE2);      // 1 – Guardar cambios
-    addIcon(IDI_ICON_CSV_IN);     // 2 – Importar CSV
-    addIcon(IDI_ICON_CSV_OUT);    // 3 – Exportar CSV
-    addIcon(IDI_ICON_PORT_ADD);   // 4 – Agregar puerto  (port_add.ico)
-    addIcon(IDI_ICON_PORT_EDIT);  // 5 – Editar puerto   (port_edit.ico)
-    addIcon(IDI_ICON_PORT_DEL);   // 6 – Borrar puerto   (port_del.ico)
+    addIcon(IDI_ICON_SRV_DEL);    // 2 – Borrar servidor
+    addIcon(IDI_ICON_CSV_IN);     // 3 – Importar CSV
+    addIcon(IDI_ICON_CSV_OUT);    // 4 – Exportar CSV
+    addIcon(IDI_ICON_PORT_ADD);   // 5 – Agregar puerto  (port_add.ico)
+    addIcon(IDI_ICON_PORT_EDIT);  // 6 – Editar puerto   (port_edit.ico)
+    addIcon(IDI_ICON_PORT_DEL);   // 7 – Borrar puerto   (port_del.ico)
 
     m_toolbar.SetImageList(&m_tbImgList);
 
@@ -208,13 +210,14 @@ void CConfigEditorDlg::CreateToolbar()
 
     btn(TB_NEW_SRV,  0);  // Nuevo servidor
     btn(TB_SAVE_SRV, 1);  // Guardar cambios
+    btn(TB_DEL_SRV,  2);  // Borrar servidor
     sep();
-    btn(TB_CSV_IN,   2);  // Importar CSV
-    btn(TB_CSV_OUT,  3);  // Exportar CSV
+    btn(TB_CSV_IN,   3);  // Importar CSV
+    btn(TB_CSV_OUT,  4);  // Exportar CSV
     sep();
-    btn(TB_PORT_ADD,  4); // Agregar puerto
-    btn(TB_PORT_EDIT, 5); // Editar puerto
-    btn(TB_PORT_DEL,  6); // Borrar puerto
+    btn(TB_PORT_ADD,  5); // Agregar puerto
+    btn(TB_PORT_EDIT, 6); // Editar puerto
+    btn(TB_PORT_DEL,  7); // Borrar puerto
 
     m_toolbar.AddButtons(n, tbb);
     m_toolbar.AutoSize();
@@ -527,6 +530,32 @@ void CConfigEditorDlg::OnBtnNewServer()
     m_edName.SetFocus();
 }
 
+void CConfigEditorDlg::OnTbDelServer()
+{
+    if (m_curSrv < 0 || m_curSrv >= (int)m_servers.size()) return;
+
+    CString msg;
+    msg.Format(L"\xbfEliminar el servidor \x2018%s\x2019?", m_servers[m_curSrv].name.c_str());
+    if (MessageBox(msg, L"Confirmar eliminaci\xf3n", MB_YESNO | MB_ICONQUESTION) != IDYES) return;
+
+    m_servers.erase(m_servers.begin() + m_curSrv);
+    m_tab.DeleteItem(m_curSrv);
+
+    int newSel = min(m_curSrv, (int)m_servers.size() - 1);
+    m_curSrv = -1;
+    if (newSel >= 0)
+        SwitchToServer(newSel);
+    else
+    {
+        m_list.DeleteAllItems();
+        m_edName.SetWindowText(L"");
+        m_edIP.SendMessage(IPM_CLEARADDRESS, 0, 0);
+        m_cbType.SetCurSel(0);
+        m_dirty = false;
+        UpdateButtonStates();
+    }
+}
+
 void CConfigEditorDlg::OnBtnAddServer()
 {
     CString name;
@@ -599,31 +628,6 @@ void CConfigEditorDlg::OnBtnAddServer()
     PositionList();
     m_dirty = false;
     SwitchToServer(newIdx);
-}
-
-void CConfigEditorDlg::OnBtnRemServer()
-{
-    if (m_curSrv < 0 || m_curSrv >= (int)m_servers.size()) return;
-
-    CString msg;
-    msg.Format(L"\xbfEliminar el servidor '%s'?", m_servers[m_curSrv].name.c_str());
-    if (MessageBox(msg, L"Confirmar", MB_YESNO | MB_ICONQUESTION) != IDYES) return;
-
-    m_servers.erase(m_servers.begin() + m_curSrv);
-    m_tab.DeleteItem(m_curSrv);
-
-    int newSel = min(m_curSrv, (int)m_servers.size() - 1);
-    m_curSrv = -1;
-    if (newSel >= 0)
-        SwitchToServer(newSel);
-    else
-    {
-        m_list.DeleteAllItems();
-        m_edName.SetWindowText(L"");
-        m_edIP.SendMessage(IPM_CLEARADDRESS, 0, 0);
-        m_cbType.SetCurSel(0);
-        UpdateButtonStates();
-    }
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -737,6 +741,7 @@ void CConfigEditorDlg::OnTbGetInfoTip(NMHDR* pNMHDR, LRESULT* pResult)
     {
     case TB_NEW_SRV:   tip = L"Nuevo servidor";     break;
     case TB_SAVE_SRV:  tip = L"Guardar cambios";    break;
+    case TB_DEL_SRV:   tip = L"Borrar servidor";    break;
     case TB_CSV_IN:    tip = L"Importar CSV";        break;
     case TB_CSV_OUT:   tip = L"Exportar CSV";        break;
     case TB_PORT_ADD:  tip = L"Agregar puerto";      break;
@@ -922,6 +927,7 @@ void CConfigEditorDlg::UpdateButtonStates()
     if (m_toolbar.GetSafeHwnd())
     {
         m_toolbar.EnableButton(TB_SAVE_SRV,  saveEnabled ? TRUE : FALSE);
+        m_toolbar.EnableButton(TB_DEL_SRV,   hasSrv      ? TRUE : FALSE);
         m_toolbar.EnableButton(TB_PORT_ADD,  hasSrv      ? TRUE : FALSE);
         m_toolbar.EnableButton(TB_PORT_EDIT, hasSel      ? TRUE : FALSE);
         m_toolbar.EnableButton(TB_PORT_DEL,  hasSel      ? TRUE : FALSE);

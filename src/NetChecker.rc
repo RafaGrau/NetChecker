@@ -9,6 +9,7 @@
 // Generated from the TEXTINCLUDE 2 resource.
 //
 #include "winres.h"
+#include "version.h"
 
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
@@ -51,6 +52,7 @@ IDI_ICON_CSV_OUT  ICON   "..\\res\\csv_out.ico"
 IDI_ICON_PORT_DEL  ICON  "..\\res\\port_del.ico"
 IDI_ICON_PORT_EDIT ICON  "..\\res\\port_edit.ico"
 IDI_ICON_PORT_ADD  ICON  "..\\res\\port_add.ico"
+IDI_ICON_SRV_DEL   ICON  "..\\res\\srv_del.ico"
 
 // cp1252: 0xE1=a 0xE9=e 0xED=i 0xF3=o 0xFA=u 0xF1=n~ 0xBF=?inv
 
@@ -58,8 +60,8 @@ IDI_ICON_PORT_ADD  ICON  "..\\res\\port_add.ico"
 // Version
 // ----------------------------------------------------------------------------
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION    1,0,0,0
- PRODUCTVERSION 1,0,0,0
+ FILEVERSION    VER_FILEVERSION
+ PRODUCTVERSION VER_PRODUCTVERSION
  FILEFLAGSMASK  0x3fL
 #ifdef _DEBUG
  FILEFLAGS      VS_FF_DEBUG
@@ -76,12 +78,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName",      "NetChecker"
             VALUE "FileDescription",  "NetChecker - Comprobador de conectividad TCP/UDP"
-            VALUE "FileVersion",      "1.0.0.0"
+            VALUE "FileVersion",      VER_FILEVERSION_STR
             VALUE "InternalName",     "NetChecker"
             VALUE "LegalCopyright",   "2025"
             VALUE "OriginalFilename", "NetChecker.exe"
             VALUE "ProductName",      "NetChecker"
-            VALUE "ProductVersion",   "1.0.0.0"
+            VALUE "ProductVersion",   VER_PRODUCTVERSION_STR
         END
     END
     BLOCK "VarFileInfo"
@@ -128,7 +130,7 @@ END
 // ----------------------------------------------------------------------------
 // IDD_ABOUT
 // ----------------------------------------------------------------------------
-IDD_ABOUT DIALOGEX 0, 0, 270, 130
+IDD_ABOUT DIALOGEX 0, 0, 270, 146
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Acerca de NetChecker"
 FONT 9, "Segoe UI", 400, 0, 0x1
@@ -137,23 +139,24 @@ BEGIN
     ICON            IDR_MAINFRAME, IDC_STATIC, 8, 8, 32, 32
     LTEXT           "NetChecker  (x64)", IDC_STATIC, 48, 10, 210, 12
     LTEXT           "Comprobador de conectividad TCP/UDP", IDC_STATIC, 48, 24, 210, 10
+    LTEXT           "", IDC_ABOUT_VERSION, 48, 36, 210, 10
 
-    CONTROL         "", IDC_STATIC, "Static", SS_ETCHEDHORZ, 6, 44, 258, 1
+    CONTROL         "", IDC_STATIC, "Static", SS_ETCHEDHORZ, 6, 50, 258, 1
 
     // Fila 2: icono GitHub + enlace URL
-    ICON            IDI_ICON_GITHUB, IDC_STATIC, 8, 50, 16, 16
-    CONTROL         "", IDC_ABOUT_LINK_GITHUB, "SysLink", WS_CHILD | WS_VISIBLE | WS_TABSTOP, 30, 52, 232, 12
+    ICON            IDI_ICON_GITHUB, IDC_STATIC, 8, 56, 16, 16
+    CONTROL         "", IDC_ABOUT_LINK_GITHUB, "SysLink", WS_CHILD | WS_VISIBLE | WS_TABSTOP, 30, 58, 232, 12
 
-    CONTROL         "", IDC_STATIC, "Static", SS_ETCHEDHORZ, 6, 70, 258, 1
+    CONTROL         "", IDC_STATIC, "Static", SS_ETCHEDHORZ, 6, 76, 258, 1
 
     // Licencia
-    LTEXT           "General Public License v3.0", IDC_STATIC, 8, 76, 254, 10
+    LTEXT           "General Public License v3.0", IDC_STATIC, 8, 82, 254, 10
 
     // Iconos
-    LTEXT           "Iconos:", IDC_STATIC, 8, 90, 28, 10
-    CONTROL         "", IDC_ABOUT_LINK_ICONS8, "SysLink", WS_CHILD | WS_VISIBLE | WS_TABSTOP, 38, 90, 224, 12
+    LTEXT           "Iconos:", IDC_STATIC, 8, 96, 28, 10
+    CONTROL         "", IDC_ABOUT_LINK_ICONS8, "SysLink", WS_CHILD | WS_VISIBLE | WS_TABSTOP, 38, 96, 224, 12
 
-    DEFPUSHBUTTON   "Aceptar", IDOK, 202, 110, 60, 14
+    DEFPUSHBUTTON   "Aceptar", IDOK, 202, 126, 60, 14
 END
 
 /////////////////////////////////////////////////////////////////////////////

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "AboutDlg.h"
+#include "version.h"
 #include <shellapi.h>
 
 IMPLEMENT_DYNAMIC(CAboutDlg, CDialogEx)
@@ -18,6 +19,12 @@ CAboutDlg::CAboutDlg(CWnd* pParent)
 BOOL CAboutDlg::OnInitDialog()
 {
     CDialogEx::OnInitDialog();
+
+    // Version string built from version.h macros
+    CString verStr;
+    verStr.Format(L"Versi\xf3n %d.%d.%d.%d",
+                  VER_MAJOR, VER_MINOR, VER_PATCH, VER_BUILD);
+    SetDlgItemText(IDC_ABOUT_VERSION, verStr);
 
     // SysLink text must be set at runtime — the RC compiler rejects angle brackets
     SetDlgItemText(IDC_ABOUT_LINK_GITHUB,

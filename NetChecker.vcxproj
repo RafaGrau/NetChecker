@@ -59,6 +59,10 @@
 
   <!-- ── Compiler & Linker (Debug x64) ─────────────────────────────────────── -->
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <PreBuildEvent>
+      <Command>powershell -ExecutionPolicy Bypass -File "$(ProjectDir)scripts\increment_build.ps1" -VersionFile "$(ProjectDir)src\version.h"</Command>
+      <Message>Incrementando VER_BUILD...</Message>
+    </PreBuildEvent>
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -83,10 +87,23 @@
     <Manifest>
       <AdditionalManifestFiles>$(ProjectDir)src\NetChecker.manifest</AdditionalManifestFiles>
     </Manifest>
+    <PostBuildEvent>
+      <Command>if exist "%ProgramFiles(x86)%\HTML Help Workshop\hhc.exe" (
+  "%ProgramFiles(x86)%\HTML Help Workshop\hhc.exe" "$(ProjectDir)help\NetChecker.hhp"
+  copy /Y "$(ProjectDir)help\NetChecker.chm" "$(OutDir)NetChecker.chm"
+) else (
+  echo [AVISO] HTML Help Workshop no encontrado. El archivo .chm no se ha compilado.
+)</Command>
+      <Message>Compilando ayuda CHM...</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
 
   <!-- ── Compiler & Linker (Release x64) ──────────────────────────────────── -->
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <PreBuildEvent>
+      <Command>powershell -ExecutionPolicy Bypass -File "$(ProjectDir)scripts\increment_build.ps1" -VersionFile "$(ProjectDir)src\version.h"</Command>
+      <Message>Incrementando VER_BUILD...</Message>
+    </PreBuildEvent>
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -114,6 +131,15 @@
     <Manifest>
       <AdditionalManifestFiles>$(ProjectDir)src\NetChecker.manifest</AdditionalManifestFiles>
     </Manifest>
+    <PostBuildEvent>
+      <Command>if exist "%ProgramFiles(x86)%\HTML Help Workshop\hhc.exe" (
+  "%ProgramFiles(x86)%\HTML Help Workshop\hhc.exe" "$(ProjectDir)help\NetChecker.hhp"
+  copy /Y "$(ProjectDir)help\NetChecker.chm" "$(OutDir)NetChecker.chm"
+) else (
+  echo [AVISO] HTML Help Workshop no encontrado. El archivo .chm no se ha compilado.
+)</Command>
+      <Message>Compilando ayuda CHM...</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
 
   <!-- ── Source files ──────────────────────────────────────────────────────── -->
@@ -143,6 +169,7 @@
   <!-- ── Header files ──────────────────────────────────────────────────────── -->
   <ItemGroup>
     <ClInclude Include="src\pch.h" />
+    <ClInclude Include="src\version.h" />
     <ClInclude Include="src\resource.h" />
     <ClInclude Include="src\AppTypes.h" />
     <ClInclude Include="src\NetChecker.h" />
@@ -164,6 +191,7 @@
   <!-- ── Manifest ──────────────────────────────────────────────────────────── -->
   <ItemGroup>
     <None Include="src\NetChecker.manifest" />
+    <None Include="scripts\increment_build.ps1" />
   </ItemGroup>
 
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

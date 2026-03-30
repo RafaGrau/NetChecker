@@ -44,7 +44,6 @@
 #define IDC_CFG_EDIT_IP         602
 #define IDC_CFG_COMBO_TYPE      603
 #define IDC_CFG_BTN_ADD_SRV     604
-#define IDC_CFG_BTN_REM_SRV     605
 #define IDC_CFG_TAB             606
 #define IDC_CFG_LIST            607
 #define IDC_CFG_EDIT_PORT       608
@@ -87,12 +86,14 @@
 #define IDI_ICON_PORT_EDIT 717  // port_edit.ico
 #define IDI_ICON_PORT_ADD  718  // reuses srv_add.ico
 #define IDI_ICON_CSV_OUT   719  // csv_out.ico (Exportar CSV)
+#define IDI_ICON_SRV_DEL   720  // srv_del.ico (Borrar servidor)
 
 // ── Config-editor toolbar control & command IDs ───────────────────────────────
 #define IDC_CFG_TOOLBAR    630
 
 #define TB_NEW_SRV         3001  // Nuevo servidor
 #define TB_SAVE_SRV        3002  // Guardar cambios
+#define TB_DEL_SRV         3008  // Borrar servidor
 #define TB_CSV_IN          3003  // Importar CSV
 #define TB_CSV_OUT         3004  // Exportar CSV
 #define TB_PORT_ADD        3005  // Agregar puerto
@@ -104,3 +105,6 @@
 #define IDC_PORT_ED_PORT   640
 #define IDC_PORT_ED_PROTO  641
 #define IDC_PORT_ED_DESC   642
+
+// ── About dialog – version static text ───────────────────────────────────────
+#define IDC_ABOUT_VERSION  643
