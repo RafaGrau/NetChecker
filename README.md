@@ -7,7 +7,10 @@ contra Domain Controllers, Print Servers, SCCM Full y SCCM Distribution Points
 de forma asíncrona, con informe HTML exportable.
 
 Desarrollada con la asistencia de **Claude Sonnet** (Anthropic).  
-Distribución libre — free to use, copy and modify.
+
+<img width="1002" height="628" alt="image" src="https://github.com/user-attachments/assets/e947ca2e-d6ed-4501-a686-f6c920f7f00f" />
+
+<img width="820" height="817" alt="image" src="https://github.com/user-attachments/assets/caea3c08-855e-4ab1-afe8-9bafd05e836d" />
 
 ---
 
@@ -32,13 +35,13 @@ Distribución libre — free to use, copy and modify.
 
 ## Informe HTML
 
-
+<img width="1045" height="657" alt="image" src="https://github.com/user-attachments/assets/ea72e39d-2281-44bb-947f-25461b9177a3" />
 
 ---
 
 ## Iconos
 
-Los iconos de la barra de herramientas han sido obtenidos de:
+Los iconos de las barras de herramientas han sido obtenidos de:
 
 **[Icons8 — Fluency style](https://icons8.com/icons/fluency)**
 
