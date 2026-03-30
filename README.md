@@ -43,7 +43,7 @@ Desarrollada con la asistencia de **Claude Sonnet** (Anthropic).
 
 Los iconos de las barras de herramientas han sido obtenidos de:
 
-**[Icons8 — Fluency style](https://icons8.com/icons/fluency)**
+**[Icons8 · Fluency style](https://icons8.com/icons/fluency)**
 
 ---
 
